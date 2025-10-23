@@ -1,3 +1,4 @@
+// controllers/recommendation_controller.go
 package controllers
 
 import (
@@ -6,9 +7,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-
+	"strconv"
 	"strings"
-  "strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,7 +17,7 @@ import (
 func GetRecommendations(c *gin.Context) {
 	menuID := c.Param("id")
 
-	// Panggil service Python yang berjalan di port 5000.
+	// Panggil service Python
 	resp, err := http.Get("http://localhost:5000/recommend/" + menuID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghubungi service rekomendasi"})
@@ -31,45 +31,46 @@ func GetRecommendations(c *gin.Context) {
 		return
 	}
 
-	// Teruskan error dari service Python jika ada (misal: 404 Not Found).
 	if resp.StatusCode != http.StatusOK {
 		c.Data(resp.StatusCode, "application/json", body)
 		return
 	}
 
-	// Proses hasil (daftar ID resep) dari Python.
 	var recommendedIDs []int
 	if err := json.Unmarshal(body, &recommendedIDs); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memproses hasil rekomendasi"})
 		return
 	}
 	
-	// Ambil detail lengkap resep dari database berdasarkan ID yang didapat.
 	var recommendedMenus []models.Menu
 	if len(recommendedIDs) > 0 {
-		config.DB.Where("menu_id IN ?", recommendedIDs).Find(&recommendedMenus)
+		// Tambahkan Preload("User") untuk data autor dan penanganan error
+		if err := config.DB.Preload("User").Where("menu_id IN ?", recommendedIDs).Find(&recommendedMenus).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil detail resep rekomendasi"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": recommendedMenus})
 }
 
-// REKOMENDASI PERSONAL
+
 // GetPersonalRecommendations mengambil rekomendasi personal berdasarkan riwayat user.
 func GetPersonalRecommendations(c *gin.Context) {
 	// 1. Ambil user yang sedang login dari context.
-	userInterface, _ := c.Get("user")
-	user := userInterface.(models.User)
+	user := c.MustGet("user").(models.User)
 
-	// 2. Ambil semua menu_id yang pernah di-bookmark atau diberi rating tinggi (>= 4).
-	var favoriteMenuIDs []int
-	// Query untuk bookmark
-	config.DB.Table("user_bookmarks").Where("user_id = ?", user.UserID).Pluck("menu_id", &favoriteMenuIDs)
-	// Query untuk rating tinggi
-	var highlyRatedMenuIDs []int
-	config.DB.Table("menu_ratings").Where("user_id = ? AND rating >= ?", user.UserID, 4).Pluck("menu_id", &highlyRatedMenuIDs)
+	// --- PERBAIKAN LOGIKA PENGAMBILAN RIWAYAT ---
+	// 2. Ambil semua menu_id yang di-bookmark oleh user.
+	var bookmarkedMenuIDs []int
+	config.DB.Table("user_bookmarks").Where("user_id = ?", user.UserID).Pluck("menu_id", &bookmarkedMenuIDs)
+
+	// 3. Ambil semua menu_id yang di-like (vote_type = 1).
+	var likedMenuIDs []int
+	config.DB.Table("menu_votes").Where("user_id = ? AND vote_type = ?", user.UserID, 1).Pluck("menu_id", &likedMenuIDs)
 	
 	// Gabungkan semua ID dan hilangkan duplikat.
-	favoriteMenuIDs = append(favoriteMenuIDs, highlyRatedMenuIDs...)
+	favoriteMenuIDs := append(bookmarkedMenuIDs, likedMenuIDs...)
 	idMap := make(map[int]bool)
 	uniqueIDs := []int{}
 	for _, id := range favoriteMenuIDs {
@@ -78,6 +79,7 @@ func GetPersonalRecommendations(c *gin.Context) {
 			uniqueIDs = append(uniqueIDs, id)
 		}
 	}
+	// ---------------------------------------------
 
 	// Jika user belum punya riwayat, kembalikan daftar kosong.
 	if len(uniqueIDs) == 0 {
@@ -85,14 +87,14 @@ func GetPersonalRecommendations(c *gin.Context) {
 		return
 	}
 
-	// 3. Ubah slice of int menjadi string "101,102,103" untuk dikirim sebagai parameter.
+	// 4. Ubah slice of int menjadi string "101,102,103".
 	idsStrSlice := []string{}
 	for _, id := range uniqueIDs {
 		idsStrSlice = append(idsStrSlice, strconv.Itoa(id))
 	}
 	idsQueryParam := strings.Join(idsStrSlice, ",")
 
-	// 4. Panggil service Python dengan daftar ID selera pengguna.
+	// 5. Panggil service Python.
 	resp, err := http.Get("http://localhost:5000/recommend/profile?ids=" + idsQueryParam)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghubungi service rekomendasi"})
@@ -100,18 +102,32 @@ func GetPersonalRecommendations(c *gin.Context) {
 	}
 	defer resp.Body.Close()
 
-    // ... (sisa kode sama seperti GetRecommendations, untuk memproses hasil)
-    body, err := io.ReadAll(resp.Body)
-	if err != nil { // ... handle error
+	// --- BAGIAN YANG HILANG DILENGKAPI ---
+	// 6. Baca dan proses respons dari Python.
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membaca respons dari service"})
+		return
 	}
-	if resp.StatusCode != http.StatusOK { // ... handle error
-	}
-	var recommendedIDs []int
-	json.Unmarshal(body, &recommendedIDs)
 
+	if resp.StatusCode != http.StatusOK {
+		c.Data(resp.StatusCode, "application/json", body)
+		return
+	}
+
+	var recommendedIDs []int
+	if err := json.Unmarshal(body, &recommendedIDs); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memproses hasil rekomendasi"})
+		return
+	}
+
+	// 7. Ambil detail resep dan kirim hasilnya.
 	var recommendedMenus []models.Menu
 	if len(recommendedIDs) > 0 {
-		config.DB.Where("menu_id IN ?", recommendedIDs).Find(&recommendedMenus)
+		if err := config.DB.Preload("User").Where("menu_id IN ?", recommendedIDs).Find(&recommendedMenus).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil detail resep rekomendasi"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": recommendedMenus})
