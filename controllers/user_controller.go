@@ -210,28 +210,32 @@ func UpdateMyProfile(c *gin.Context) {
 
 // DeactivateUser mengubah status user menjadi 'inactive'.
 func DeactivateUser(c *gin.Context) {
-    var user models.User
+	var user models.User
 	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
 		return
 	}
-    
-    config.DB.Model(&user).Update("status_user", "inactive")
-    admin := c.MustGet("user").(models.User)
-    helpers.CreateLog(admin.UserID, "ADMIN_DEACTIVATE_USER", user.UserID, "users")
-    c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil dinonaktifkan"})
+	
+	config.DB.Model(&user).Update("status_user", "inactive")
+	admin := c.MustGet("user").(models.User)
+	helpers.CreateLog(admin.UserID, "ADMIN_DEACTIVATE_USER", user.UserID, "users")
+	c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil dinonaktifkan"})
 }
 
 // ActivateUser mengubah status user menjadi 'active'.
 func ActivateUser(c *gin.Context) {
     var user models.User
-	if err := config.DB.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
+
+    // --- PERBAIKAN DI SINI ---
+    // Gunakan GORM secara langsung, ia akan otomatis mencari berdasarkan primary key 'user_id'
+	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
 		return
 	}
+    // -------------------------
     
-    config.DB.Model(&user).Update("status_user", "active")
-    admin := c.MustGet("user").(models.User)
-    helpers.CreateLog(admin.UserID, "ADMIN_ACTIVATE_USER", user.UserID, "users")
-    c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil diaktifkan"})
+	config.DB.Model(&user).Update("status_user", "active")
+	admin := c.MustGet("user").(models.User)
+	helpers.CreateLog(admin.UserID, "ADMIN_ACTIVATE_USER", user.UserID, "users")
+	c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil diaktifkan"})
 }

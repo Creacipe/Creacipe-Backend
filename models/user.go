@@ -27,7 +27,8 @@ type AdminCreateUserInput struct {
 	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
-	RoleName string `json:"role_name" binding:"required,oneof=admin,editor,member"`
+	// PERBAIKAN: Tambahkan spasi di antara pilihan oneof
+	RoleName string `json:"role_name" binding:"required,oneof=admin editor member"`
 }
 
 // AdminUpdateUserInput mendefinisikan data user yang bisa diubah oleh admin.
@@ -38,6 +39,7 @@ type AdminUpdateUserInput struct {
 
 // UpdateUserRoleInput mendefinisikan input saat mengubah peran user.
 type UpdateUserRoleInput struct {
+	// PERBAIKAN: Tambahkan spasi di antara pilihan oneof
 	RoleName string `json:"role_name" binding:"required,oneof=admin editor member"`
 }
 
