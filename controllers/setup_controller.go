@@ -53,6 +53,11 @@ func SetupFirstAdmin(c *gin.Context) {
 		return
 	}
 
+	// --- TAMBAHAN: BUAT PROFIL KOSONG OTOMATIS ---
+	profile := models.UserProfile{UserID: admin.UserID}
+	config.DB.Create(&profile)
+	// ---------------------------------------------
+
 	// --- TAMBAHKAN LOG ---
 	helpers.CreateLog(admin.UserID, "SETUP_FIRST_ADMIN", admin.UserID, "users")
 	// ---------------------

@@ -44,6 +44,15 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	// --- TAMBAHAN: BUAT PROFIL KOSONG OTOMATIS ---
+	// Setelah user berhasil dibuat, langsung buatkan profil kosong untuknya.
+	profile := models.UserProfile{UserID: user.UserID}
+	if err := config.DB.Create(&profile).Error; err != nil {
+		// Idealnya, ada penanganan jika pembuatan profil gagal
+		log.Printf("Gagal membuat profil untuk user ID %d: %v", user.UserID, err)
+	}
+	// ---------------------------------------------
+
 	// --- 2. TAMBAHKAN LOG UNTUK REGISTRASI ---
 	helpers.CreateLog(user.UserID, "USER_REGISTER", user.UserID, "users")
 	// ------------------------------------------
@@ -54,6 +63,7 @@ func Register(c *gin.Context) {
 
 
 // Login menangani logika autentikasi pengguna dan pembuatan token JWT.
+// Login menangani logika autentikasi dengan pengecekan status.
 func Login(c *gin.Context) {
 	var input models.LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -62,20 +72,29 @@ func Login(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := config.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
+	// Langkah 1: Cari user berdasarkan email saja, tanpa peduli status.
+	if err := config.DB.Preload("Role").Where("email = ?", input.Email).First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email atau password salah"})
 		return
 	}
 
+	// Langkah 2: Setelah user ditemukan, periksa statusnya.
+	if user.StatusUser == "inactive" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Akun Anda telah dinonaktifkan. Silakan hubungi admin."})
+		return
+	}
+
+	// Langkah 3: Jika aktif, baru periksa password.
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email atau password salah"})
 		return
 	}
 
+	// Jika semua berhasil, buat token JWT.
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":   user.UserID,
-		"role":  user.Role.RoleName,
-		"exp":   time.Now().Add(time.Hour * 24 * 30).Unix(),
+		"sub":  user.UserID,
+		"role": user.Role.RoleName,
+		"exp":  time.Now().Add(time.Hour * 1).Unix(),
 	})
 
 	token, err := claims.SignedString([]byte(os.Getenv("JWT_SECRET")))
@@ -83,10 +102,8 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat token"})
 		return
 	}
-	// --- 3. TAMBAHKAN LOG UNTUK LOGIN ---
-	helpers.CreateLog(user.UserID, "USER_LOGIN", user.UserID, "users")
-	// ------------------------------------
 
+	helpers.CreateLog(user.UserID, "USER_LOGIN", user.UserID, "users")
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 

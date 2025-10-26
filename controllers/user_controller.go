@@ -41,6 +41,12 @@ func AdminCreateUser(c *gin.Context) {
 		return
 	}
 
+	// --- TAMBAHAN: BUAT PROFIL KOSONG OTOMATIS ---
+	profile := models.UserProfile{UserID: user.UserID}
+	config.DB.Create(&profile)
+	// ---------------------------------------------
+	// --- 2. TAMBAHKAN LOG UNTUK PENAMBAHAN USER ---
+
 	admin := c.MustGet("user").(models.User)
 	helpers.CreateLog(admin.UserID, "ADMIN_CREATE_USER", user.UserID, "users")
 	c.JSON(http.StatusCreated, gin.H{"data": user})

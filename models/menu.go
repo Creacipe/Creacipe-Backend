@@ -30,6 +30,7 @@ type CreateMenuInput struct {
 	Ingredients  string `json:"ingredients" binding:"required"`
 	Instructions string `json:"instructions" binding:"required"`
 	ImageURL     string `json:"image_url"`
+	TagIDs       []uint `json:"tag_ids"` // TAMBAHKAN INI
 }
 
 type UpdateMenuInput struct {

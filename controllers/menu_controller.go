@@ -36,6 +36,15 @@ func CreateMenu(c *gin.Context) {
 		return
 	}
 
+	// Jika ada TagID yang dikirim, hubungkan tag-tag tersebut ke menu
+	if len(input.TagIDs) > 0 {
+		var tags []models.Tag
+		// Cari semua tag berdasarkan ID yang diberikan
+		config.DB.Where(input.TagIDs).Find(&tags)
+		// Tempelkan tag-tag yang ditemukan ke resep
+		config.DB.Model(&menu).Association("Tags").Append(&tags)
+	}
+
 	// --- TAMBAHKAN LOG ---
 	helpers.CreateLog(user.UserID, "CREATE_MENU", menu.MenuID, "menus")
 	// ---------------------

@@ -36,6 +36,7 @@ func main() {
 		api.GET("/menus/:id/recommendations", controllers.GetRecommendations)
 		api.POST("/forgot-password", controllers.ForgotPassword)
 		api.POST("/reset-password", controllers.ResetPassword)
+		api.GET("/categories", controllers.GetAllCategories)
 
 		// --- Rute Terotentikasi ---
 		auth := api.Group("/")
@@ -53,6 +54,7 @@ func main() {
 			auth.GET("/me/recommendations", controllers.GetPersonalRecommendations)
 			auth.GET("/me", controllers.GetMyProfile)
 			auth.PUT("/me", controllers.UpdateMyProfile)
+			
 
 			// Rute Moderasi (Editor & Admin)
 			editorRoutes := auth.Group("/editor")
@@ -62,8 +64,14 @@ func main() {
 				editorRoutes.GET("/menus/pending", controllers.GetPendingMenus)
 				editorRoutes.PATCH("/menus/:id/status", controllers.UpdateMenuStatus)
 				editorRoutes.POST("/tags", controllers.CreateTag)
-                editorRoutes.PUT("/tags/:id", controllers.UpdateTag)
-                editorRoutes.DELETE("/tags/:id", controllers.DeleteTag)
+        editorRoutes.PUT("/tags/:id", controllers.UpdateTag)
+        editorRoutes.DELETE("/tags/:id", controllers.DeleteTag)
+
+				// --- manajemen kategori ---
+        editorRoutes.POST("/categories", controllers.CreateCategory)
+        editorRoutes.PUT("/categories/:id", controllers.UpdateCategory)
+        editorRoutes.DELETE("/categories/:id", controllers.DeleteCategory)
+        // ------------------------------------------
 			}
 
 			// Rute Manajemen User (Hanya Admin)
