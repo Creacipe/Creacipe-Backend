@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Oct 20, 2025 at 09:47 AM
+-- Generation Time: Oct 26, 2025 at 02:16 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -24,6 +24,188 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `categories`
+--
+
+CREATE TABLE `categories` (
+  `category_id` bigint UNSIGNED NOT NULL,
+  `category_name` varchar(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `categories`
+--
+
+INSERT INTO `categories` (`category_id`, `category_name`) VALUES
+(1, 'Bahan Utama'),
+(2, 'Metode Masak'),
+(3, 'Jenis Hidangan'),
+(4, 'Rasa');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `comments`
+--
+
+CREATE TABLE `comments` (
+  `comment_id` bigint UNSIGNED NOT NULL,
+  `menu_id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `comment_text` text NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `log_activity`
+--
+
+CREATE TABLE `log_activity` (
+  `activity_id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `action` varchar(100) NOT NULL COMMENT 'e.g., CREATE_MENU, LOGIN, DELETE_USER',
+  `target_id` bigint UNSIGNED DEFAULT NULL,
+  `target_type` varchar(100) DEFAULT NULL COMMENT 'e.g., menus, users, comments',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `log_activity`
+--
+
+INSERT INTO `log_activity` (`activity_id`, `user_id`, `action`, `target_id`, `target_type`, `created_at`) VALUES
+(1, 1, 'SETUP_FIRST_ADMIN', 1, 'users', '2025-10-23 13:55:32'),
+(2, 2, 'USER_REGISTER', 2, 'users', '2025-10-23 13:56:42'),
+(3, 3, 'USER_REGISTER', 3, 'users', '2025-10-23 13:57:06'),
+(4, 4, 'USER_REGISTER', 4, 'users', '2025-10-23 13:57:25'),
+(5, 1, 'ADMIN_CREATE_USER', 5, 'users', '2025-10-23 13:58:08'),
+(6, 1, 'USER_LOGIN', 1, 'users', '2025-10-23 13:58:58'),
+(7, 1, 'ADMIN_DEACTIVATE_USER', 5, 'users', '2025-10-23 14:00:00'),
+(8, 1, 'ADMIN_ACTIVATE_USER', 5, 'users', '2025-10-23 14:00:18'),
+(9, 1, 'ADMIN_UPDATE_ROLE', 4, 'users', '2025-10-23 14:02:16'),
+(10, 1, 'ADMIN_DEACTIVATE_USER', 5, 'users', '2025-10-23 14:16:15'),
+(11, 5, 'USER_LOGIN', 5, 'users', '2025-10-23 14:16:55'),
+(12, 5, 'USER_LOGIN', 5, 'users', '2025-10-23 14:17:27'),
+(13, 1, 'ADMIN_ACTIVATE_USER', 5, 'users', '2025-10-23 14:30:02'),
+(14, 5, 'USER_LOGIN', 5, 'users', '2025-10-23 14:30:20'),
+(15, 2, 'USER_LOGIN', 2, 'users', '2025-10-23 14:35:09'),
+(16, 2, 'USER_LOGIN', 2, 'users', '2025-10-23 14:35:12'),
+(17, 2, 'CREATE_MENU', 1, 'menus', '2025-10-23 15:09:44'),
+(18, 2, 'CREATE_MENU', 2, 'menus', '2025-10-23 15:17:49'),
+(19, 2, 'CREATE_MENU', 3, 'menus', '2025-10-23 15:18:12'),
+(20, 2, 'CREATE_MENU', 4, 'menus', '2025-10-23 15:18:52'),
+(21, 2, 'CREATE_MENU', 5, 'menus', '2025-10-23 15:19:15'),
+(22, 2, 'CREATE_MENU', 6, 'menus', '2025-10-23 15:19:42'),
+(23, 2, 'CREATE_MENU', 7, 'menus', '2025-10-23 15:20:07'),
+(24, 2, 'CREATE_MENU', 8, 'menus', '2025-10-23 15:20:29'),
+(25, 2, 'CREATE_MENU', 9, 'menus', '2025-10-23 15:21:07'),
+(26, 3, 'USER_LOGIN', 3, 'users', '2025-10-23 15:23:03'),
+(27, 3, 'USER_LOGIN', 3, 'users', '2025-10-23 15:23:06'),
+(28, 3, 'CREATE_MENU', 10, 'menus', '2025-10-23 15:24:27'),
+(29, 3, 'CREATE_MENU', 11, 'menus', '2025-10-23 15:25:16'),
+(30, 3, 'CREATE_MENU', 12, 'menus', '2025-10-23 15:25:31'),
+(31, 3, 'CREATE_MENU', 13, 'menus', '2025-10-23 15:25:45'),
+(32, 3, 'CREATE_MENU', 14, 'menus', '2025-10-23 15:26:04'),
+(33, 3, 'CREATE_MENU', 15, 'menus', '2025-10-23 15:26:19'),
+(34, 3, 'CREATE_MENU', 16, 'menus', '2025-10-23 15:27:04'),
+(35, 3, 'CREATE_MENU', 17, 'menus', '2025-10-23 15:27:23'),
+(36, 4, 'USER_LOGIN', 4, 'users', '2025-10-23 15:32:01'),
+(37, 4, 'CREATE_MENU', 18, 'menus', '2025-10-23 15:33:32'),
+(38, 4, 'CREATE_MENU', 19, 'menus', '2025-10-23 15:34:04'),
+(39, 4, 'CREATE_MENU', 20, 'menus', '2025-10-23 15:34:15'),
+(40, 4, 'CREATE_MENU', 21, 'menus', '2025-10-23 15:34:27'),
+(41, 4, 'CREATE_MENU', 22, 'menus', '2025-10-23 15:34:45'),
+(42, 4, 'CREATE_MENU', 23, 'menus', '2025-10-23 15:34:58'),
+(43, 4, 'CREATE_MENU', 24, 'menus', '2025-10-23 15:35:11'),
+(44, 4, 'CREATE_MENU', 25, 'menus', '2025-10-23 15:35:58'),
+(45, 4, 'CREATE_MENU', 26, 'menus', '2025-10-23 16:23:16'),
+(46, 1, 'USER_LOGIN', 1, 'users', '2025-10-26 05:11:08'),
+(47, 1, 'CREATE_CATEGORY', 5, 'categories', '2025-10-26 05:20:36'),
+(48, 1, 'UPDATE_CATEGORY', 5, 'categories', '2025-10-26 05:24:33'),
+(49, 1, 'DELETE_CATEGORY', 5, 'categories', '2025-10-26 05:25:47'),
+(50, 1, 'CREATE_TAG', 55, 'tags', '2025-10-26 05:27:43'),
+(51, 1, 'UPDATE_TAG', 55, 'tags', '2025-10-26 05:29:47'),
+(52, 1, 'DELETE_TAG', 55, 'tags', '2025-10-26 05:31:19'),
+(53, 1, 'APPROVE_MENU', 26, 'menus', '2025-10-26 06:02:33'),
+(54, 1, 'REJECT_MENU', 25, 'menus', '2025-10-26 06:04:56'),
+(55, 1, 'USER_LOGIN', 1, 'users', '2025-10-26 06:17:15'),
+(56, 6, 'USER_REGISTER', 6, 'users', '2025-10-26 06:25:26'),
+(57, 6, 'USER_LOGIN', 6, 'users', '2025-10-26 06:25:42'),
+(58, 6, 'CREATE_MENU', 27, 'menus', '2025-10-26 06:29:49'),
+(59, 6, 'CREATE_MENU', 28, 'menus', '2025-10-26 06:30:44'),
+(60, 6, 'UPDATE_MENU', 28, 'menus', '2025-10-26 06:34:29'),
+(61, 1, 'USER_LOGIN', 1, 'users', '2025-10-26 06:35:13'),
+(62, 1, 'UPDATE_MENU', 28, 'menus', '2025-10-26 06:35:32'),
+(63, 6, 'USER_LOGIN', 6, 'users', '2025-10-26 06:37:27'),
+(64, 6, 'DELETE_MENU', 28, 'menus', '2025-10-26 06:38:26'),
+(65, 1, 'USER_LOGIN', 1, 'users', '2025-10-26 06:38:59'),
+(66, 1, 'DELETE_MENU', 27, 'menus', '2025-10-26 06:39:23'),
+(67, 6, 'USER_LOGIN', 6, 'users', '2025-10-26 06:43:41'),
+(68, 6, 'BOOKMARK_MENU', 1, 'menus', '2025-10-26 06:45:39'),
+(69, 6, 'UNBOOKMARK_MENU', 1, 'menus', '2025-10-26 06:46:38'),
+(70, 6, 'LIKE_MENU', 1, 'menus', '2025-10-26 06:47:56'),
+(71, 6, 'DISLIKE_MENU', 1, 'menus', '2025-10-26 06:49:01'),
+(72, 6, 'REMOVE_VOTE', 1, 'menus', '2025-10-26 06:50:38'),
+(73, 6, 'LIKE_MENU', 1, 'menus', '2025-10-26 06:53:28'),
+(74, 6, 'REMOVE_VOTE', 1, 'menus', '2025-10-26 07:03:33'),
+(75, 6, 'LIKE_MENU', 1, 'menus', '2025-10-26 07:03:53'),
+(76, 6, 'LIKE_MENU', 2, 'menus', '2025-10-26 07:04:47'),
+(77, 6, 'BOOKMARK_MENU', 1, 'menus', '2025-10-26 07:05:06'),
+(78, 6, 'BOOKMARK_MENU', 2, 'menus', '2025-10-26 07:07:50'),
+(79, 6, 'BOOKMARK_MENU', 3, 'menus', '2025-10-26 07:07:54'),
+(80, 2, 'USER_LOGIN', 2, 'users', '2025-10-26 07:08:18'),
+(81, 2, 'BOOKMARK_MENU', 3, 'menus', '2025-10-26 07:08:39'),
+(82, 2, 'BOOKMARK_MENU', 5, 'menus', '2025-10-26 07:08:43'),
+(83, 2, 'BOOKMARK_MENU', 1, 'menus', '2025-10-26 07:08:48'),
+(84, 2, 'BOOKMARK_MENU', 7, 'menus', '2025-10-26 07:08:52'),
+(85, 6, 'REMOVE_VOTE', 1, 'menus', '2025-10-26 07:09:06'),
+(86, 6, 'REMOVE_VOTE', 2, 'menus', '2025-10-26 07:09:10'),
+(87, 6, 'LIKE_MENU', 3, 'menus', '2025-10-26 07:09:15'),
+(88, 6, 'LIKE_MENU', 4, 'menus', '2025-10-26 07:09:21'),
+(89, 3, 'USER_LOGIN', 3, 'users', '2025-10-26 07:09:47'),
+(90, 3, 'BOOKMARK_MENU', 1, 'menus', '2025-10-26 07:10:03'),
+(91, 3, 'BOOKMARK_MENU', 2, 'menus', '2025-10-26 07:10:07'),
+(92, 3, 'LIKE_MENU', 1, 'menus', '2025-10-26 07:10:22'),
+(93, 3, 'LIKE_MENU', 2, 'menus', '2025-10-26 07:10:26'),
+(94, 3, 'LIKE_MENU', 3, 'menus', '2025-10-26 07:10:30'),
+(95, 4, 'USER_LOGIN', 4, 'users', '2025-10-26 07:10:49'),
+(96, 4, 'BOOKMARK_MENU', 2, 'menus', '2025-10-26 07:11:01'),
+(97, 4, 'BOOKMARK_MENU', 1, 'menus', '2025-10-26 07:11:05'),
+(98, 4, 'BOOKMARK_MENU', 3, 'menus', '2025-10-26 07:11:10'),
+(99, 4, 'LIKE_MENU', 3, 'menus', '2025-10-26 07:11:18'),
+(100, 4, 'LIKE_MENU', 2, 'menus', '2025-10-26 07:11:22'),
+(101, 4, 'LIKE_MENU', 1, 'menus', '2025-10-26 07:11:26'),
+(102, 1, 'USER_LOGIN', 1, 'users', '2025-10-26 07:20:48'),
+(103, 1, 'APPROVE_MENU', 1, 'menus', '2025-10-26 07:21:06'),
+(104, 1, 'APPROVE_MENU', 2, 'menus', '2025-10-26 07:21:11'),
+(105, 1, 'APPROVE_MENU', 3, 'menus', '2025-10-26 07:21:15'),
+(106, 1, 'APPROVE_MENU', 4, 'menus', '2025-10-26 07:21:19'),
+(107, 1, 'APPROVE_MENU', 5, 'menus', '2025-10-26 07:21:25'),
+(108, 1, 'APPROVE_MENU', 6, 'menus', '2025-10-26 07:21:28'),
+(109, 1, 'APPROVE_MENU', 7, 'menus', '2025-10-26 07:21:34'),
+(110, 1, 'APPROVE_MENU', 8, 'menus', '2025-10-26 07:21:38'),
+(111, 1, 'APPROVE_MENU', 9, 'menus', '2025-10-26 07:21:47'),
+(112, 1, 'APPROVE_MENU', 10, 'menus', '2025-10-26 07:21:51'),
+(113, 1, 'APPROVE_MENU', 11, 'menus', '2025-10-26 07:21:55'),
+(114, 1, 'APPROVE_MENU', 12, 'menus', '2025-10-26 07:21:59'),
+(115, 1, 'APPROVE_MENU', 13, 'menus', '2025-10-26 07:22:03'),
+(116, 1, 'APPROVE_MENU', 14, 'menus', '2025-10-26 07:22:07'),
+(117, 1, 'APPROVE_MENU', 15, 'menus', '2025-10-26 07:22:11'),
+(118, 1, 'APPROVE_MENU', 16, 'menus', '2025-10-26 07:22:16'),
+(119, 1, 'APPROVE_MENU', 17, 'menus', '2025-10-26 07:22:22'),
+(120, 1, 'APPROVE_MENU', 18, 'menus', '2025-10-26 07:22:27'),
+(121, 1, 'APPROVE_MENU', 19, 'menus', '2025-10-26 07:22:31'),
+(122, 1, 'APPROVE_MENU', 20, 'menus', '2025-10-26 07:22:37'),
+(123, 7, 'USER_REGISTER', 7, 'users', '2025-10-26 14:11:46'),
+(124, 7, 'USER_LOGIN', 7, 'users', '2025-10-26 14:12:09'),
+(125, 7, 'LIKE_MENU', 1, 'menus', '2025-10-26 14:14:10'),
+(126, 7, 'BOOKMARK_MENU', 1, 'menus', '2025-10-26 14:14:30');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `menus`
 --
 
@@ -33,12 +215,12 @@ CREATE TABLE `menus` (
   `title` varchar(255) NOT NULL,
   `description` text,
   `ingredients` json DEFAULT NULL,
-  `instructions` text,
+  `instructions` json DEFAULT NULL,
   `image_url` varchar(255) DEFAULT NULL,
   `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
   `rejection_reason` text,
-  `created_at` datetime(3) DEFAULT NULL,
-  `updated_at` datetime(3) DEFAULT NULL
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
@@ -46,191 +228,31 @@ CREATE TABLE `menus` (
 --
 
 INSERT INTO `menus` (`menu_id`, `user_id`, `title`, `description`, `ingredients`, `instructions`, `image_url`, `status`, `rejection_reason`, `created_at`, `updated_at`) VALUES
-(101, 10, 'Rendang Sapi', 'Daging sapi empuk dengan bumbu rempah khas Padang yang medok.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(102, 10, 'Ayam Bakar Madu', 'Ayam bakar dengan olesan madu dan kecap yang manis dan gurih.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(103, 11, 'Sayur Asem Jakarta', 'Sayur asem dengan kuah segar berisi berbagai macam sayuran.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(104, 11, 'Ikan Goreng Tepung', 'Ikan dori fillet yang digoreng renyah dengan balutan tepung.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(105, 12, 'Nasi Goreng Seafood', 'Nasi goreng dengan isian udang, cumi, dan bumbu spesial.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(106, 10, 'Mie Goreng Jawa', 'Mie kuning yang dimasak dengan bumbu kemiri dan sayuran.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(107, 11, 'Tahu Gejrot', 'Tahu pong diguyur kuah asam pedas dari bawang dan cabai.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(108, 12, 'Tempe Bacem', 'Tempe yang direbus dengan air kelapa dan gula merah, lalu digoreng.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(109, 10, 'Sate Ayam Madura', 'Sate ayam dengan bumbu kacang khas Madura yang kental.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(110, 11, 'Bubur Sumsum', 'Bubur lembut dari tepung beras disajikan dengan saus gula merah.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(111, 10, 'Soto Ayam Lamongan', 'Soto bening dengan suwiran ayam, koya gurih, dan jeruk nipis.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(112, 11, 'Rawon Sapi Surabaya', 'Sup hitam khas Jawa Timur dengan kluwek dan daging sapi empuk.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(113, 12, 'Gado-Gado Bumbu Kacang', 'Sayuran rebus disiram bumbu kacang kental, lengkap dengan kerupuk.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(114, 10, 'Ikan Bakar Rica', 'Ikan segar dibakar lalu dilapisi sambal rica pedas menyengat.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(115, 11, 'Nasi Uduk Betawi', 'Nasi gurih santan dengan lauk pelengkap dan sambal.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(116, 12, 'Mie Rebus Kampung', 'Mie telur direbus dengan kuah kaldu gurih dan sayuran.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(117, 10, 'Tahu Isi Sayur', 'Tahu goreng berisi irisan sayur berbumbu lalu disajikan dengan cabai.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(118, 11, 'Tempe Mendoan', 'Tempe tipis berbalut tepung digoreng setengah matang, lembut dan gurih.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(119, 12, 'Bakso Sapi Kuah', 'Bakso kenyal dalam kuah kaldu hangat dengan mie dan sayuran.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(120, 10, 'Ayam Goreng Lengkuas', 'Ayam goreng renyah dengan taburan lengkuas garing.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(121, 11, 'Sapi Lada Hitam', 'Irisan daging sapi ditumis dengan saus lada hitam yang gurih.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(122, 12, 'Ikan Kuah Kuning', 'Ikan dimasak kuah kunyit segar dengan rempah sederhana.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(123, 10, 'Capcay Tumis', 'Aneka sayuran ditumis cepat dengan bawang dan saus ringan.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(124, 11, 'Nasi Liwet Sunda', 'Nasi gurih dengan teri, cabai, dan daun salam khas Sunda.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(125, 12, 'Mie Goreng Seafood Pedas', 'Mie goreng dengan udang dan cumi, pedas dan wangi.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(126, 10, 'Tahu Bacem Goreng', 'Tahu yang dibacem manis gurih lalu digoreng hingga kecokelatan.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(127, 11, 'Tempe Orek Kecap', 'Tempe iris tipis dimasak manis pedas dengan kecap.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(128, 12, 'Ayam Woku', 'Ayam berbumbu woku pedas segar khas Manado.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(129, 10, 'Sate Sapi Kecap', 'Sate daging sapi empuk dibakar dengan olesan kecap manis.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(130, 11, 'Ikan Asam Pedas', 'Ikan dimasak kuah asam pedas segar menggugah selera.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(131, 12, 'Sayur Lodeh', 'Sayur santan lembut dengan labu, kacang panjang, dan tempe.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(132, 10, 'Nasi Kebuli Sapi', 'Nasi berbumbu rempah kuat dengan potongan daging sapi.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(133, 11, 'Mie Tek-Tek Goreng', 'Mie goreng kaki lima dengan telur, sayur, dan bumbu tajam.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(134, 12, 'Perkedel Kentang', 'Perkedel kentang lembut, gurih, nikmat untuk lauk samping.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(135, 10, 'Ayam Penyet Sambal Terasi', 'Ayam goreng dipenyet disajikan dengan sambal terasi pedas.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(136, 11, 'Sapi Semur Betawi', 'Semur daging sapi manis gurih dengan rempah hangat.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(137, 12, 'Ikan Pepes Daun Pisang', 'Ikan dibumbui lalu dikukus/pepes dalam daun pisang wangi.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(138, 10, 'Cah Kangkung Bawang Putih', 'Kangkung tumis cepat dengan bawang putih, sederhana tapi nikmat.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(139, 11, 'Nasi Goreng Kampung', 'Nasi goreng sederhana dengan teri, cabai, dan kemangi.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(140, 12, 'Mie Aceh Tumis', 'Mie kuning bumbu rempah kuat dengan irisan daging.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(141, 10, 'Tahu Telur Surabaya', 'Tahu telur dengan saus petis manis gurih dan sayuran.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(142, 11, 'Tempe Garit Krispi', 'Tempe diserut tipis digoreng kriuk sebagai camilan atau lauk.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(143, 12, 'Ayam Taliwang', 'Ayam bakar pedas khas Lombok, rasa kuat dan smoky.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(144, 10, 'Sapi Balado', 'Irisan daging sapi digoreng lalu dibalut sambal balado.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(145, 11, 'Ikan Goreng Sambal Matah', 'Ikan goreng garing disajikan dengan sambal matah segar.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(146, 12, 'Urap Sayur', 'Sayuran kukus dengan kelapa parut berbumbu wangi.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(147, 10, 'Nasi Kuning Komplit', 'Nasi kunyit gurih dengan lauk telur, ayam, dan sambal.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(148, 11, 'Mie Kuah Bakso', 'Mie kuah hangat dengan bakso dan sawi, cocok saat hujan.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(149, 12, 'Bakwan Tahu Sayur', 'Gorengan renyah berisi tahu dan parutan sayuran berbumbu.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(150, 10, 'Ayam Rica-Rica', 'Ayam pedas dengan bumbu rica merah segar.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(151, 11, 'Sapi Tumis Jamur', 'Sapi ditumis cepat dengan jamur dan bawang bombai.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(152, 12, 'Ikan Bakar Jimbaran', 'Ikan bakar oles sambal khas Jimbaran, manis pedas.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(153, 10, 'Sayur Bayam Bening', 'Sayur bening bayam dan jagung, segar menenangkan.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(154, 11, 'Nasi Goreng Kambing (Sapi Varian)', 'Versi sapi dari nasi goreng bumbu kebuli yang gurih.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(155, 12, 'Mie Goreng Tekstur Rumahan', 'Mie goreng harian simpel, gurih dan wangi.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(156, 10, 'Tahu Sambal Kecap', 'Tahu goreng disiram sambal kecap pedas manis.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(157, 11, 'Tempe Bacem Iris Tipis', 'Tempe bacem manis gurih, dipotong tipis agar meresap.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(158, 12, 'Ayam Gulai Santan', 'Ayam dimasak santan berbumbu gulai hangat.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(159, 10, 'Sapi Tumis Cabe Ijo', 'Sapi iris tipis ditumis dengan cabai hijau pedas.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(160, 11, 'Ikan Pindang Serani', 'Ikan dimasak kuah asam segar dengan tomat dan sereh.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(161, 12, 'Tumis Toge Tahu', 'Tauge dan tahu ditumis cepat, sederhana dan sehat.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(162, 10, 'Nasi Tutug Oncom', 'Nasi diaduk oncom panggang, wangi khas Sunda.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(163, 11, 'Mie Ayam Jamur', 'Mie ayam gurih topping jamur kecap.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(164, 12, 'Tahu Lada Garam', 'Tahu renyah dilumuri bawang putih, garam, dan cabai.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(165, 10, 'Ayam Kecap Pedas', 'Ayam dimasak kecap manis pedas, cocok untuk makan malam.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(166, 11, 'Sapi Teriyaki Lokal', 'Sapi tumis manis gurih gaya rumahan.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(167, 12, 'Ikan Kukus Jahe', 'Ikan dikukus dengan jahe dan bawang, rasa ringan.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(168, 10, 'Oseng Buncis Wortel', 'Buncis dan wortel oseng cepat dengan bawang.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(169, 11, 'Nasi Goreng Petai', 'Nasi goreng dengan petai dan irisan cabai, wangi kuat.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(170, 12, 'Mie Goreng Pedas Manis', 'Mie goreng dengan komposisi pedas manis seimbang.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(171, 10, 'Tahu Cabe Garam', 'Tahu goreng kriuk dengan cabai dan garam, camilan favorit.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(172, 11, 'Tempe Penyet Sambal Ijo', 'Tempe goreng dipenyet sambal hijau pedas.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(173, 12, 'Ayam Bakar Kecap', 'Ayam dibakar oles kecap manis, smoky dan legit.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(174, 10, 'Sapi Geprek Bawang', 'Daging sapi digeprek dengan bawang pedas gurih.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(175, 11, 'Ikan Sambal Dabu-Dabu', 'Ikan goreng disajikan dengan sambal dabu-dabu segar.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(176, 12, 'Sayur Sop Rumahan', 'Sop sayur bening dengan wortel, kentang, dan kol.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(177, 10, 'Nasi Goreng Teri Medan', 'Nasi goreng dengan teri medan, renyah gurih.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(178, 11, 'Mie Godog Jawa', 'Mie rebus kuah Jawa dengan telur dan sayuran.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(179, 12, 'Tahu Kuah Kecap', 'Tahu direbus dalam kuah kecap manis gurih.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(180, 10, 'Ayam Kalasan', 'Ayam berbumbu manis gurih khas Yogyakarta.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(181, 11, 'Sapi Oseng Mercon', 'Oseng daging sapi super pedas bagi pencinta cabai.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(182, 12, 'Ikan Woku Belanga', 'Ikan masak woku berkuah, pedas segar.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(183, 10, 'Tumis Sawi Putih Telur', 'Sawi putih ditumis dengan telur orak-arik, simple dan enak.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(184, 11, 'Nasi Goreng Telur Asin', 'Nasi goreng dengan saus telur asin gurih.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(185, 12, 'Mie Nyemek', 'Mie kuah kental khas Jawa, pedas gurih.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(186, 10, 'Tahu Kecap Bawang', 'Tahu goreng disiram kecap bawang sederhana.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(187, 11, 'Tempe Kering Balado', 'Tempe kering kriuk dibalut saus balado pedas manis.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(188, 12, 'Ayam Opor Putih', 'Opor ayam santan putih lembut dan hangat.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(189, 10, 'Sapi Bistik Rumahan', 'Bistik daging sapi gaya rumahan manis gurih.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(190, 11, 'Ikan Goreng Sambal Terasi', 'Ikan goreng garing dengan sambal terasi pedas.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(191, 12, 'Urap Kencur', 'Sayur urap dengan aroma kencur lebih kuat.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(192, 10, 'Nasi Jagung Komplit', 'Nasi jagung dengan lauk sederhana khas desa.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(193, 11, 'Mie Goreng Baso Sosis', 'Mie goreng dengan bakso dan sosis untuk porsi kenyang.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(194, 12, 'Tahu Pong Kuah', 'Tahu pong disajikan dalam kuah segar asam gurih.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(195, 10, 'Ayam Cabe Ijo', 'Ayam dimasak sambal cabai hijau pedas.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(196, 11, 'Sapi Tumis Paprika', 'Daging sapi tumis paprika renyah dan manis alami.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(197, 12, 'Ikan Kuah Asam Belimbing', 'Ikan dimasak kuah asam belimbing wuluh segar.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(198, 10, 'Sayur Asem Sunda', 'Sayur asem bening asam segar khas Sunda.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(199, 11, 'Nasi Goreng Mawut', 'Campuran nasi dan mie digoreng bersama jadi satu.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL),
-(200, 12, 'Mie Goreng Jawa Pedas', 'Mie goreng gaya Jawa dengan tingkat pedas menantang.', NULL, NULL, NULL, 'approved', NULL, NULL, NULL);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `menu_ratings`
---
-
-CREATE TABLE `menu_ratings` (
-  `rating_id` bigint UNSIGNED NOT NULL,
-  `user_id` bigint UNSIGNED NOT NULL,
-  `menu_id` bigint UNSIGNED NOT NULL,
-  `rating` tinyint UNSIGNED NOT NULL,
-  `created_at` datetime(3) DEFAULT NULL,
-  `updated_at` datetime(3) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `menu_ratings`
---
-
-INSERT INTO `menu_ratings` (`rating_id`, `user_id`, `menu_id`, `rating`, `created_at`, `updated_at`) VALUES
-(1, 10, 101, 5, NULL, NULL),
-(2, 10, 109, 4, NULL, NULL),
-(3, 10, 111, 4, NULL, NULL),
-(4, 10, 112, 5, NULL, NULL),
-(5, 10, 119, 4, NULL, NULL),
-(6, 10, 120, 5, NULL, NULL),
-(7, 10, 121, 4, NULL, NULL),
-(8, 10, 128, 4, NULL, NULL),
-(9, 10, 129, 4, NULL, NULL),
-(10, 10, 135, 5, NULL, NULL),
-(11, 10, 136, 4, NULL, NULL),
-(12, 10, 143, 4, NULL, NULL),
-(13, 10, 144, 5, NULL, NULL),
-(14, 10, 158, 5, NULL, NULL),
-(15, 10, 159, 4, NULL, NULL),
-(16, 10, 173, 5, NULL, NULL),
-(17, 10, 174, 5, NULL, NULL),
-(18, 10, 180, 4, NULL, NULL),
-(19, 10, 181, 4, NULL, NULL),
-(20, 10, 188, 5, NULL, NULL),
-(21, 10, 195, 5, NULL, NULL),
-(22, 10, 196, 5, NULL, NULL),
-(23, 11, 101, 4, NULL, NULL),
-(24, 11, 108, 4, NULL, NULL),
-(25, 11, 111, 5, NULL, NULL),
-(26, 11, 112, 4, NULL, NULL),
-(27, 11, 115, 4, NULL, NULL),
-(28, 11, 116, 5, NULL, NULL),
-(29, 11, 119, 4, NULL, NULL),
-(30, 11, 124, 5, NULL, NULL),
-(31, 11, 130, 5, NULL, NULL),
-(32, 11, 131, 5, NULL, NULL),
-(33, 11, 132, 5, NULL, NULL),
-(34, 11, 137, 5, NULL, NULL),
-(35, 11, 146, 4, NULL, NULL),
-(36, 11, 147, 5, NULL, NULL),
-(37, 11, 148, 4, NULL, NULL),
-(38, 11, 167, 5, NULL, NULL),
-(39, 11, 178, 5, NULL, NULL),
-(40, 11, 179, 5, NULL, NULL),
-(41, 11, 182, 4, NULL, NULL),
-(42, 11, 185, 5, NULL, NULL),
-(43, 11, 188, 4, NULL, NULL),
-(44, 11, 194, 5, NULL, NULL),
-(45, 11, 197, 5, NULL, NULL),
-(46, 11, 198, 4, NULL, NULL),
-(47, 12, 101, 4, NULL, NULL),
-(48, 12, 102, 5, NULL, NULL),
-(49, 12, 109, 5, NULL, NULL),
-(50, 12, 111, 4, NULL, NULL),
-(51, 12, 112, 5, NULL, NULL),
-(52, 12, 121, 5, NULL, NULL),
-(53, 12, 129, 5, NULL, NULL),
-(54, 12, 136, 5, NULL, NULL),
-(55, 12, 143, 5, NULL, NULL),
-(56, 12, 150, 5, NULL, NULL),
-(57, 12, 151, 5, NULL, NULL),
-(58, 12, 158, 5, NULL, NULL),
-(59, 12, 159, 4, NULL, NULL),
-(60, 12, 173, 5, NULL, NULL),
-(61, 12, 174, 5, NULL, NULL),
-(62, 12, 195, 4, NULL, NULL),
-(63, 12, 196, 5, NULL, NULL),
-(64, 13, 102, 5, '2025-10-18 16:37:44.341', '2025-10-18 16:37:44.341');
+(1, 2, 'Ayam Bumbu Bawang', 'Resep ayam goreng sederhana dengan marinasi bumbu bawang yang gurih dan meresap.', '[\"1 dada ayam fillet, cuci bersih, potong kecil2\", \"1 buah jeruk nipis\", \"Bumbu marinate:\", \"5 siung bawang putih\", \"1 sdt lada hitam\", \"secukupnya Gula dan garam\", \"Minyam goreng\"]', '[\"Kucuri ayam dengan air jeruk nipis, kemudian marinate dengan bumbu halus selama 3 jam di kulkas\", \"Panaskan minyak, goreng ayam sampai matang dan kecoklatan\", \"Sajikan hangat dengan nasi putih.\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:09:44', '2025-10-26 07:21:06'),
+(2, 2, 'Ayam Woku Manado', 'Resep Ayam Woku Manado yang lezat dan mudah dibuat.', '[\"1 Ekor Ayam Kampung (potong 12)--2 Buah Jeruk Nipis--2 Sdm Garam--3 Ruas Kunyit--7 Bawang Merah--7 Bawang Putih--10 Cabe Merah--10 Cabe Rawit Merah (sesuai selera)--3 Butir Kemiri--2 Batang Sereh--2 Lembar Daun Salam--2 Ikat Daun Kemangi--Penyedap Rasa--1 1/2 Gelas Air--\"]', '[\"Cuci bersih ayam dan tiriskan. Lalu peras jeruk nipis (kalo gak ada jeruk nipis bisa pake cuka) dan beri garam. Aduk hingga merata dan diamkan selama 5 menit\", \"biar ayam gak bau amis.--Goreng ayam tersebut setengah matang\", \"lalu tiriskan--Haluskan bumbu menggunakan blender. Bawang merah\", \"bawang putih\", \"cabe merah\", \"cabe rawit\", \"kemiri dan kunyit. Oh iya kasih minyak sedikit yaa biar bisa di blender. Untuk sereh nya di geprek aja terus di buat simpul.--Setelah bumbu di haluskan barulah di tumis. Jangan lupa sereh dan daun salamnya juga ikut di tumis. Di tumis sampai berubah warna ya 👌--Masukan ayam yang sudah di goreng setengah matang ke dalam bumbu yang sudah di tumis\", \"dan diamkan 5 menit dulu. Biar bumbu meresap. Lalu tuangkan 1 1/2 Gelas air. Lalu tambahkan penyedap rasa (saya 3 Sdt\", \"tapi sesuai selera ya) koreksi rasa dan Biar kan sampai mendidih--Setelah masakan mendidih\", \"lalu masukan daun kemangi yang sudah di potong potong. Masak lagi sekitar 10 menit. And taraaaaaaaaaaaaaa..... jadi deh Ayam Woku Manadonya.--Oh iyaa kalo mau di tambahkan potongan tomat merah juga bisa ko. Sesuai selera aja yaa buibuuuu 👌👌👌--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:17:49', '2025-10-26 07:21:11'),
+(3, 2, 'Gurame Saus Padang', 'Resep Gurame Saus Padang yang lezat dan mudah dibuat.', '[\"Bahan utama:--1 ekor gurame--Bumbu untuk saus:--4 siung bawang putih (cincang halus)--3 siung bawang merah (cincang halus)--15 bh cabai merah (giling) banyaknya cabai sesuai selera ya😊--7 buah cabai rawit iris tipis (sesuai selera)--1/2 bawang bombang iris--Saus tiram--Saus tomat--Garam--Gula--Lada--1 bh wortel iris tipis memanjang (opsional)--1 buah tomat potong dadu (opsional)--1 batang irisan daun bawang--1 ruas jahe ukuran kecil iris tipis--Tepung maizena--250 ml air--Bumbu untuk menggoreng ikan :--Tepung beras--Tepung terigu--Garam--Jeruk nipis/ lemon--Minyak sayur--\"]', '[\"Cuci bersih ikan gurame yang akan dimasak. Setelah itu lumuri ikan dengan air perasan jeruk nipis/lemon diamkan beberapa menit untuk menghilangkan bau amisnya--Campur tepung terigu\", \"tepung beras dan garam menjadi satu\", \"kemudian lumuri ikan dengan tepung tersebut lalu goreng hingga matang lalu tiriskan. Pastikan minyak yang digunakan sudah panas ya biar ikannya tidak lengket😊.--Tumis bawang merah bawang putih hingga harum\", \"kemudian masukan cabai yang sudah giling\", \"aduk rata--Tambahkan bawang bombay\", \"saus tiram saus tomat dan jahe\", \"aduk sebentar lalu tambahkan 250ml air--Kemudian tambahkan garam dan gula sesuai selera.--Masukkan irisan cabai rawit dan daun bawang dan tomat. Aduk rata. Kemudian tambahkan larutan maizena agar saus mengental--Jika tidak ada tepung maizena. Diamkan beberapa menit hingga kandungan air menyusut dan saus terlihat mengental--Tes rasa. Jika sudah pas. Sajikan dan gurame saus padang siap disantap!😊--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:18:12', '2025-10-26 07:21:15'),
+(4, 2, 'Sate Kambing', 'Resep Sate Kambing yang lezat dan mudah dibuat.', '[\"Bahan-bahan :--500 gr Daging kambing--Daun pepaya--Bumbu yang dihaluskan :--4 siung bamer--4 siung baput--2 cm jahe--1 sdt ketumbar--1/2 sdt lada bubuk--1/2 sdt Garam--1 sdm air asam jawa--Bahan sambel kecap :--Kecap manis sesuai selera (aku pake bango)--Cabe rawit--Bamer--Tomat--Jeruk limau--\"]', '[\"1. Cuci bersih daging kambing\", \"potong\\\" kotak\", \"bungkus didalam lapisan daun pepaya (30menit)--2.setelah 30 menit\", \"keluarkan daging dr daun pepaya\", \"campurkan dengan bumbu yang sudah dihaluskan\", \"diamkan 15 menit--3. Susun daging pada tusuk sate kurlen 4-5 potong per tusuk--4. Bakar (bisa pakai arang / teflon)--5. Bolak balik sate hingga benar\\\" matang--6. Sajikan dengan sambal kecap--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:18:52', '2025-10-26 07:21:19'),
+(5, 2, 'Beef Teriyaki', 'Resep Beef Teriyaki yang lezat dan mudah dibuat.', '[\"250 gr daging sapi--1 siung bawang bombai--5 siung bawang putih--1 sachet saus teriyaki (sy pk yg saor*, bsa diganti saus tiram)--1 sdm kecap manis--secukupnya garam--secukupnya lada--secukupnya gula--secukupnya penyedap rasa--\"]', '[\"Potong kecil-kecil memanjang daging sapi, lalu cuci bersih--Tambahkan garam dan lada diamkan selama kurleb 15 menit--Iris bawang bombai dan bawang putih--Tumis bawang bombai dan bawang putih, setelah harum masukkan daging--Tumis daging sebentar lalu tambahkan saus teriyaki, kecap manis, garam, lada, gula dan penyedap rasa, beri air sedikit--Tutup wajannya agar panasnya merata--Tunggu sampai daging matang, lalu garnish sesuai selera--Beef teriyaki siap untuk disantap--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:19:15', '2025-10-26 07:21:25'),
+(6, 2, 'Martabak tahu pedas kulit lumpia', 'Resep Martabak tahu pedas kulit lumpia yang lezat dan mudah dibuat.', '[\"12 lembar kulit lumpia--4 buah tahu putih--2 batang daun bawang (iris halus)--1 batang daun seledri (iris halus)--3 btr telur (sy pakai 2 aja krn agak besar)--1 sdm terigu + 2 sdm air (sbgai lem kulit lumpia)--Sckpnya minyak utk menggoreng--Bumbu halus :--3 siung bawang putih--1/2 bks lada/merica bubuk--Sckpnya garam gula dan kaldu bubuk--3-4 cabe merah kriting iris serong--2 buah wortel agak kecil parut kasar--\"]', '[\"Haluskan tahu putih campur semua bahan kecuali kulit lumpia (icip rasa)--Ambil 1 lbr kulit lumpia beri 1 sdm adonan tahu ditengahnya lalu lipat (seperti amplop) dgn rapi, lalu beri lem disetiap sisisnya spy tdk terbuka pd saat digoreng, lakukan hingga habis--Panaskan minyak diatas wajan dgn api sedang cenderung kecil, goreng martabak sampai kecoklatan angkat dan tiriskan (abaikan wajannya yg sdh mulai jelek ya 😁)--Martabak tahu pedas kulit lumpia siap dihidangkan--Selamat mencoba\", \"😘😘--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:19:42', '2025-10-26 07:21:28'),
+(7, 2, 'Orak arik telur buncis', 'Resep Orak arik telur buncis yang lezat dan mudah dibuat.', '[\"1 buah telur--10 buncis--3 bawang merah--2 bawang putih--6 cabe rawit--1 sdm kecap manis--Penyedap (garam gula atau penyedap lainnya)--\"]', '[\"Haluskan bawang merah\", \"bawang putih dan cabai--Iris buncis sesuai selera--Tumis bumbu halus hingga harum--Masukan buncis hingga agak layu--Masukan penyedap--Masukan telur\", \"lalu campur dengan buncis di orak arik hingga rata.. tunggu sebentar lalu di orak arik lagi.. supaya matangnya sempurna 👌(biar ga amis)--Masukan kecap manis--Masukan air sedikit biarkan menyusut dan meresap--Koreksi rasa--Jadi deh.. selamat menikmati 😇--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:20:07', '2025-10-26 07:21:34'),
+(8, 2, 'Orek tempe manis pedas super simple', 'Resep Orek tempe manis pedas super simple yang lezat dan mudah dibuat.', '[\"Tempe (saya beli 3000 saja)--3 buah cabe gendot--3 buah cabe keriting--3 buah cabe rawit merah--2 siung bawang merah--1 siung bawang putih--Kecap--Saus tiram--Saus tomat--Kaldu bubuk--Garam--Gula--\"]', '[\"Potong2 tempe sesuai selera lalu goreng sebentar.--Tumis duo bawang dan semua cabe (cabe bisa sesuai selera ya pedesnya suka segimana) sampai harum. Masukkan tempe\", \"kecap\", \"saus tiram\", \"saus tomat\", \"kaldu bubuk\", \"gulgar\", \"dan tambahkan air satu gelas belimbing. Aduk2 dan tutup wajan.--Saat air sudah menyusut dan kuah kecap mengental. Cek rasa. Klo sudah oke. Matikan api. Sajikan. (Klo aku suka airnya sedikit sekali 😋). Selamat mencoba !--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:20:29', '2025-10-26 07:21:38'),
+(9, 2, 'Lumpia udang kulit tahu\'', 'Resep Lumpia udang kulit tahu  yang lezat dan mudah dibuat.', '[\"50 gram ayam potong kotak kecil--200 gram udang besar potong kecil--1 lembar daun bawang iris halus--1/2 sendok teh garam halus/sesuai selera--1/2 sendok teh gula--1/4 sendok teh merica bubuk--1 sendok teh kecap ikan--1 sendok teh saus raja rasa--1 sendok teh saus tiram--1 sendok teh minyak wijen--1 sendok makan tepung sagu--1 sendok teh tepung terigu--1 butir telur ambil bagian putihnya saja, kocok lepas--2 lembar kembang tahu kering / kulit tahu direndam sebentar--\"]', '[\"Campur ayam & udang dengan semua bumbu & daun bawang\", \"aduk rata. Sesudah rata masukkan tepung sagu\", \"terigu & putih telur. Aduk rata.--Isikan ke lembaran kulit kembang tahu & lipat seperti melipat lumpia\", \"sambil dipadatkan agar rapi & bentuk agak pipih jangan terlalu bulat. Olesi putih telur diujung lipatan agar merekat rapat.--Kukus sekitar 15 menit hingga matang. Angkat dinginkan. Siap digoreng dengan api kecil sebentar. Anakku suka digoreng agak lama dengan kuning telur kocok sisa adonan tadi. Nanti jadi ada kayak jala2 crispynya yang gurih & kering. Angkat & tiriskan jika sudah digoreng matang.--Sajikan dengan dipotong diagonal (potong 2 serong). Siap disantap dengan saus sambal botol yang biasanya saya rebus dengan bawang goreng\", \"cabe rawit iris\", \"gula & sedikit air. Selamat mencoba.--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:21:07', '2025-10-26 07:21:47'),
+(10, 3, 'Ayam goreng tulang lunak', 'Resep Ayam goreng tulang lunak yang lezat dan mudah dibuat.', '[\"1 kg ayam (dipotong sesuai selera jangan kecil2 ya)--2 batang serai (memarkan)--4 lembar daun jeruk--7 butir bawang putih (haluskan)--1 sdm ketumbar (haluskan)--3 ruas jari Laos (haluskan)--3 ruas jari kunyit (haluskan)--2 butir kemiri (haluskan)--secukupnya Garam--Secukupnya Air (tuk ukep ayam)--Secukupnya Minyak goreng--\"]', '[\"Haluskan bumbu2nya (BaPut, ketumbar, kemiri, kunyit, Laos, garam) hingga halus, sisihkan--Campur kan bumbu halus tadi dengan ayam yg sudah dicuci bersih dan sudah dipotong didalam panci presto\", \"Uleni sampai tercampur rata\", \"--Tambahkan air hingga ayam tenggelam semua\", \"Masukkan serai dan daun jeruk nya kedalam rendaman ayam\", \"Tutup panci presto rebus/ ukep presto sampai kurleb 45 menit\", \"Dengan api sedang\", \"--Setelah proses ukep presto selesai, tunggu suhu dingin ruang\", \"Lalu goreng ayam dengan minyak goreng api sedang sampai ayam berwarna kecoklatan\", \"--Matang dan sajikan ayam selagi hangat bersama nasi putih, sambal dgn perasan jeruk nipis, lalapan\", \"--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:24:27', '2025-10-26 07:21:51'),
+(11, 3, 'Ikan Kembung Bakar Teflon', 'Resep Ikan Kembung Bakar Teflon yang lezat dan mudah dibuat.', '[\"1/2 kg ikan kembung sate, bersihkan--1 buah jeruk sate/jeruk kunci--1 sdm garam halus--2 sdt lada bubuk--1 sdm ketumbar bubuk--\"]', '[\"Kucuri ikan dengan jeruk, diamkan 5 menit--Lumuri ikan dg garam, lada dan ketumbar bubuk, simpan d kulkas sekitar 30 menit--Bakar d atas teflon yg d olesi mentega/ butter tipis dengan api yg kecil--Balik untuk membakar kedua bagian ikan\", \"--Sajikan dengan cocolan sambal kecap--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:25:16', '2025-10-26 07:21:55'),
+(12, 3, 'Rabeg Kambing', 'Resep Rabeg Kambing yang lezat dan mudah dibuat.', '[\"1 kg daging kambing bagian paha beserta tulang--Bumbu halus--100 gr cabe--7 siung bawang putih--8 siung bawang mersh--7 butir kemiri--2 cm jahe--1 ruas kunyit--1/2 sdt klabet--1/2 sdt jinten--Bumbu lain--1 batang sereh--3 lembar daun salam--2 cm kayu manis--5 butir cengjeh--3 kapulaga hijau--5 sdm kecap manis--Garam--Gula--Pelengkap--Acar--Bawang goreng--\"]', '[\"Tumis bumbu halus hingga harum. Masukan bumbu bumbu lain kecuali kecap.--Masukan daging kambing. Aduk sampai daging terbalut bumbu dan berubah warna--Pindahkan tumisan daging ke panci. Tambahkan air. Beri kecap gulz dan garam. Masak sampai daging empuk dan air tinggal sedikit--Sajikan dengan nasi dan pelebgkap--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:25:30', '2025-10-26 07:21:59'),
+(13, 3, 'Rendang Sapi', 'Resep Rendang Sapi yang lezat dan mudah dibuat.', '[\"1 kg daging sapi--4 butir kelapa untuk 2L santan kental--Bumbu dihaluskan :--200 gram Cabe merah--1/2 cm Jahe--2 sdm ketumbar sangrai--10 butir kapulaga--10 butir cengkeh--2 butir bunga lawang--1 buah biji pala--13 butir bawang merah--7 butir bawang putih--25 buah cabe rawit (jika suka pedas)--3 cm lengkuas dipipihkan--2 buah serai dipipihkan--3 lembar daun jeruk--3 lembar daun salam--2 lembar daun kunyit--1/2 sdm garam (tambahkan jika kurang asin)--1 sdt kaldu bubuk (optional)--\"]', '[\"Potong daging berlawanan dari seratnya--Peras santan dari 4 butir kelapa tua menjadi 2 liter--Haluskan bumbu--Tuang santan dan bumbu ke dalam wajan anti lengket, masak hingga mendidih--Kemudian masukkan daging, garam dan kaldu\", \"Masak dengan api kecil sambil sesekali di aduk agar tidak gosong--Sampai tahap ini dinamakan kalio, teruskan memasak hingga daging mulai mengering dan kehitaman--Rendang siap dinikmati--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:25:45', '2025-10-26 07:22:03'),
+(14, 3, 'Batagor (Bakso Tahu Goreng) ala rumahan anti gagal', 'Resep Batagor (Bakso Tahu Goreng) ala rumahan anti gagal yang lezat dan mudah dibuat.', '[\"Bahan batagor--3 kotak ukuran kecil tahu kuning--5 sdm tepung terigu--1/2 sdm mentega (supaya kriuk2)--2 buah bawang putih--Garam (secukupnya)--Merica (secukupnya)--Air putih matang (secukupnya)--Bahan saus--2 sdm saus cabe (saya pake indofo**)--1/2 siung bawang putih--2 cabe rawit (sesuai selera ya karna suami saya gak suka pedas)--Kecap (secukupnya)--Air matang (secukupnya)--\"]', '[\"Haluskan tahu kuning, bawang putih, garam merica (hingga lumat)--Tambahkan mentega, tepung terigu kedalam adonan tahu dan beri air hingga lembek tapi jangan sampai encer ya\", \"Koreksi rasa--Siapkan wajan dengan minyak, goreng adonan yang telah dibuat\", \"(Saya pake 2 sendok buat bikin kecil2)\", \"Angkat dan tata di mangkuk\", \"--Haluskan bawang putih, cabai rawit--Tumis bawang putih dan cabai yang sudah di haluskan hingga harus\", \"--Masukkan saus, kecap, garam\", \"Koreksi rasa--Batagor dan sausnya siap untuk dinikmati 🤤--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:26:04', '2025-10-26 07:22:07'),
+(15, 3, 'Terik ayam tempe telor', 'Resep Terik ayam tempe telor yang lezat dan mudah dibuat.', '[\"4 sayap ayam--4 buah telor--1/2 papan tempe--Bumbu halus:--5 siung bawang merah--4 siung bawang putih--2 butir kemiri--1/2 sdm ketumbar--secukupnya Garam--Bumbu lain:--2 cm lengkuas--1 lembar daun salam--1 batang sereh--secukupnya Gula jawa--Bawang goreng--Minyak untuk menumis--1 bungkus santan kara--secukupnya Air--5 buah cabe rawit--\"]', '[\"Cuci sayap ayam kemudian sisihkan. Rebus telur dan kupas. Sisihkan. Potong tempe sesuai selera. Sisihkan.--Panaskan minyak langsung di dalam panci. Tumis sereh\", \"daun salam\", \"dan lengkuas. Setelah beberapa saat masukkan bumbu halus. Tumis sampai berbau harum. Kemudian masukkan air dan gula jawa dan cabe rawit. Jika air sudah mendidih\", \"masukkan sayap ayam dan telor. Masukkan tempe belakangan. Tunggu beberapa saat sampai ayam empuk (karena pakai sayap ayam\", \"jadi tidak begitu lama). Jika ayam sudah empuk masukkan santan kara. Tunggu beberapa saat. Sesuaikan rasa. Matikan api\", \"dan taburkan bawang goreng.--Terik siap dinikmati dengan nasi hangat dan kerupun 😁--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:26:19', '2025-10-26 07:22:11'),
+(17, 3, 'Bakso Ayam Udang Keto', 'Resep Bakso Ayam Udang Keto yang lezat dan mudah dibuat.', '[\"400 gr ayam giling--250 gr udang kupas--3 telur ayam utuh kocok--30 ml minyak goreng--1/2 sdt baking powder--secukupnya garam, lada--2 sdm bawang goreng haluskan--secukupnya Bawang merah & putih--1/2 sdt minyak wijen--Karageenan secukupnya (pengenyal)--Es batu 8 keping kotak--\"]', '[\"Campur semua bahan dalam food processor\", \"kecuali daun bawang dan minyak goreng.--Tuang dalam baskom lalu taburi daun bawang dan minyak goreng\", \"uleni rata (gunakan sarung tangan). Lalu simpan 2 jam dlm kulkas.--Panaskan minyak di wajan dgn api sedang. Bulatkan adonan dengan menggunakan dua sendok. Lalu goreng sampai matang. Adonan akan mengembang saat di wajan\", \"tapi kembali kempes stelah diangkat.--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:27:23', '2025-10-26 07:22:22'),
+(18, 4, 'Ayam cabai kawin', 'Resep Ayam cabai kawin yang lezat dan mudah dibuat.', '[\"1/4 kg ayam--3 buah cabai hijau besar--7 buah cabai merah rawit--3 siung bawang putih--2 siung bawang merah--secukupnya Gula--secukupnya Garam--1/4 buah tomat merah--secukupnya Air--secukupnya Minyak goreng--\"]', '[\"Panaskan minyak di dalam wajan. Setelah minyak panas masukkan ayam yang sudah dipotong dadu. Goreng hingga matang. Lalu tiriskan.--Haluskan bawang putih\", \"bawang merah\", \"cabai hijau dan merah\", \"tomat.--Panaskan minyak didalam wajan. Setelah minyak panas\", \"masukkan bumbu yang sudah halus. Tunggu sampai wangi. Masukkan ayam yang sudah di goreng. Tambahkan air\", \"gula dan garam. Tunggu sampai bumbu meresap di ayam. Sajikan.--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:33:32', '2025-10-26 07:22:27'),
+(19, 4, 'Mujaer asam pedas manis', 'Resep Mujaer asam pedas manis yang lezat dan mudah dibuat.', '[\"1/2 kg ikan mujaer (stok gurame habis)--2 buah Wortel potong korek api--1 siung bawang bombai--7 siung bawang putih--13 cabai rawit--4 siung bawang merah--2 sendok makan Saos tomat--2 sendok makan Saos tiram--Garam--Merica--100 ml air matang--Jahe--Jeruk nipis--\"]', '[\"Bersihkan ikan sampai benar-benar bersih. Kerat-kerat dagingnya. Beri garam\", \"merica\", \"potongan jahe perasan jeruk nipis\", \"dan 2 siung bawang uleg. Diamkan 10 menit--Uleg 5 bawang putih yang tersisa. Potong bawang bombai dan dan bawang merah dan cabai rawit.--Goreng ikan mujaer hingga matang\", \"lalu sisihkan.--Tumis bawang merah dan bawang bombai hingga wangi\", \"masukkan bawang putih uleg. Tumis hingga wangi.--Masukkan wortel\", \"tambahkan air. Aduk-aduk. Tunggu hingga wortel hampir matang.--Masukkan saos tomat dan saos tiram. Beri perasan jeruk nipis. Aduk-aduk Koreksi rasa. Jika sudah pas\", \"masukkan ikan\", \"aduk sebentar saja.--Siap disajikan.--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:34:04', '2025-10-26 07:22:31'),
+(20, 4, 'Gulai kambing', 'Resep Gulai kambing yang lezat dan mudah dibuat.', '[\"500 gram daging kambing--Bumbu :--sesuai selera Santan--2 btng serai,memarkan--5 lembar Daun Salam,jeruk--sesuai selera Cabe--2 btr Cengkeh--Bumbu halus:--5 siung bawng merah--4 siung bwng putih--5 butir kemiri--2 cm kunyit--2 cm jahe--2 cm lengkuas--1 sdt ketumbar--Mrica,pala,garam,gula seckpnya--\"]', '[\"Rebus dgng kambing dgn jahe krng lbh 20 menit lalu buang airnya,cc bersih--Tumis bumbu yg sudah dihaluskn,,masukn semua bahan Dan bumbu--Rebus sampe empuk--Terakhir masukn santan,tes rasa,,,--Sajikan dimangkok,yumm ✌️--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 15:34:15', '2025-10-26 07:22:37'),
+(21, 4, 'Tongseng daging sapi pedas', 'Resep Tongseng daging sapi pedas yang lezat dan mudah dibuat.', '[\"300 gr daging sapi (iris tipis panjang)--Bumbu halus :--7 siung bawang merah--4 siung bawang putih--2 cm jahe--1,5 cm kunyit--3 bh kemiri--5 cabe merah keriting--Bumbu pelengkap :--2 batang sereh--2 daun salam--2 daun jeruk--5 bh cabe rawit merah utuh--Toping--1 bh tomat besar (iris sedang)--Kol secukupnya menurut selera (iris sedang)--\"]', '[\"Tumis bumbu halus dengan sedikit minyak\", \"tumis sampai matang dan mengental. Lalu masukkan daging sapi yang telah dipotong2 tadi. Lalu masukkan bumbu pelengkap. Tumis daging dengan bumbu sampai daging sapi berubah warna dan agak mengeluarkan minyak.--Masukkan air secukupnya sekitar 1\", \"5 liter biarkan mendidih sebentar lalu kecilkan api dan tutup panci. Tunggu sampai daging empuk..--Setelah daging empuk masukkan kol dan tomat\", \"masak sebentar saja agar tekstur kol agak crunchy.. angkat lalu sajikan--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'pending', '', '2025-10-23 15:34:27', '2025-10-23 15:34:27'),
+(22, 4, 'Sayur Sutace (sop tahu ceker)', 'Resep Sayur Sutace (sop tahu ceker) yang lezat dan mudah dibuat.', '[\"1/2 kg ceker ayam--4 buah wortel ukuran sedang--6 buah wortel--sesuai selera Kol--sesuai selera Daun bawang--sesuai selera Seledri--4 buah tahu kuning--Garam--Gula putih--Penyedap rasa (ma**ko)--Lada bubuk--Jeruk nipis--2 siung Bawang Putih--2 siung Bawang merah--\"]', '[\"Bersihkan ceker, lau rebut selama 3-4 menit pakai jeruk nipis biar gk terlalu bau--Tiriskan ceker--Potong2 tahu, lalu goreng set mateng, tiriskan--Potong2 sayurr, cuci hingga bersihh\", \"--Haluskan bawang merah dan bawang putih\", \"--Panaskan sedikit minyak masukan bawang yg sudah di haluskan, oseng2 hingga tercium wangi--Masukan sayurr, tampahkan air, garam, gula putih dan penyedap rasa secukupnya\", \"--Tunggu hingga sayur hampir matang, masukan ceker, dan tahu\", \"--Tutup wajan hingga kaldu meresap kedalam ceker dan tahu\", \"--Setelah matang, tuang ke mangkok, siap di santappp 😊😊--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'pending', '', '2025-10-23 15:34:45', '2025-10-23 15:34:45'),
+(23, 4, 'Telur Kornet', 'Resep Telur Kornet yang lezat dan mudah dibuat.', '[\"1/2 kaleng kornet--2-3 buah bawang prei--2 buah telur--1 sdm tepung terigu--secukupnya Cabe rawit--2 jumput Garam--1/2 sdt Merica--1/2 sdm Saus tiram--\"]', '[\"Campur kornet\", \"telur\", \"bawang prei dan cabe yg sudah di iris tipis. Tambahkan garam merica saos tiram secukupnya dan tepung terigu. Goreng 1 sdm dulu setelah matang baru cek rasa. Dirasa sudah pas. Adonan siap di goreng.😊--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'pending', '', '2025-10-23 15:34:58', '2025-10-23 15:34:58'),
+(24, 4, 'Penyet Tempe Sambel Korek Kemangi', 'Resep Penyet Tempe Sambel Korek Kemangi yang lezat dan mudah dibuat.', '[\"2 buah tempe--1 genggam Daun kemangi--15 cabe rawit--2 siung bawang putih--Gula--Garam--\"]', '[\"Iris tempe jd beberapa potong, bumbui dg bawang putih dan garam\", \"Goreng sampai kering--Ulek cabe rawit dan 1 siung bawang putih ukuran besar tambah gula garam sesuai selera--Setelah halus tuang minyak goreng panas bekas goreng tempe td--Penyet tempe diatas sambel dan beri daun kemangi--Tempe penyet siap disantap 😋😋😋--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'pending', '', '2025-10-23 15:35:11', '2025-10-23 15:35:11'),
+(25, 4, 'Udang ala pop corn', 'Resep Udang ala pop corn yang lezat dan mudah dibuat.', '[\"1/4 kg udang basah ukuran sedang--1 bungkus kobe tepung ayam super crispy--secukupnya Air matang--Minyak untuk menggoreng--\"]', '[\"Buang kepala dan cangkang udang.--Cuci bersih udang.--Tepung bumbu dibagi jadi 2 adonan. Adonan basah dan adonan kering.--Masukkan udang ke dalam adonan tepung bumbu kering\", \"gulirkan ke dlm tepung sambil ditekan2. Lalu masukkan ke dalam Tepung bumbu adonan basah gulirkan lagi sambil di tekan2\", \"lalu masukkan lagi di adonan tepung bumbu kering Sambil ditekan2 agar tepung menempel sempurna.--Panaskan minyak goreng. Lalu goreng udang sampai kuning keemasan.--Angkat dan tiriskan.--Sajikan selagi hangat 😊--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'rejected', 'Instruksi kurang jelas.', '2025-10-23 15:35:58', '2025-10-26 06:04:56'),
+(26, 4, 'Ayam Geprek', 'Resep Ayam Geprek yang lezat dan mudah dibuat.', '[\"250 gr daging ayam (saya pakai fillet)\", \"Secukupnya gula dan garam\", \"50-100 gr tepung ayam serbaguna\", \"Secukupnya lalapan (kemangi,kol,timun)\", \"Secukupnya minyak panas\", \"❤sambal korek\", \"Secukupnya cabe rawit merah dan bwg putih\"]', '[\"Goreng ayam seperti ayam krispi\", \"Ulek semua bahan sambal kemudian campur dengan minyak panas bekas goreng ayam\", \"Geprek ayam kemudian campur dengan sambal,sajikan dengan lalapan ❤\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 16:23:16', '2025-10-26 06:02:33');
 
 -- --------------------------------------------------------
 
@@ -248,477 +270,72 @@ CREATE TABLE `menu_tags` (
 --
 
 INSERT INTO `menu_tags` (`menu_id`, `tag_id`) VALUES
-(102, 1),
-(109, 1),
-(111, 1),
-(120, 1),
-(128, 1),
-(135, 1),
-(143, 1),
-(150, 1),
-(158, 1),
-(165, 1),
-(173, 1),
-(180, 1),
-(188, 1),
-(195, 1),
-(101, 2),
-(112, 2),
-(119, 2),
-(121, 2),
-(129, 2),
-(136, 2),
-(144, 2),
-(151, 2),
-(159, 2),
-(166, 2),
-(174, 2),
-(181, 2),
-(189, 2),
-(196, 2),
-(104, 3),
-(114, 3),
-(122, 3),
-(130, 3),
-(137, 3),
-(145, 3),
-(152, 3),
-(160, 3),
-(167, 3),
-(175, 3),
-(182, 3),
-(190, 3),
-(197, 3),
-(103, 4),
-(113, 4),
-(123, 4),
-(131, 4),
-(134, 4),
-(138, 4),
-(146, 4),
-(153, 4),
-(161, 4),
-(168, 4),
-(176, 4),
-(183, 4),
-(191, 4),
-(198, 4),
-(105, 5),
-(115, 5),
-(124, 5),
-(132, 5),
-(139, 5),
-(147, 5),
-(154, 5),
-(162, 5),
-(169, 5),
-(177, 5),
-(184, 5),
-(192, 5),
-(199, 5),
-(106, 6),
-(116, 6),
-(125, 6),
-(133, 6),
-(140, 6),
-(148, 6),
-(155, 6),
-(163, 6),
-(170, 6),
-(178, 6),
-(185, 6),
-(193, 6),
-(199, 6),
-(200, 6),
-(107, 7),
-(117, 7),
-(126, 7),
-(141, 7),
-(149, 7),
-(156, 7),
-(161, 7),
-(164, 7),
-(171, 7),
-(179, 7),
-(186, 7),
-(194, 7),
-(108, 8),
-(118, 8),
-(127, 8),
-(142, 8),
-(157, 8),
-(172, 8),
-(187, 8),
-(104, 10),
-(105, 10),
-(117, 10),
-(118, 10),
-(120, 10),
-(125, 10),
-(126, 10),
-(133, 10),
-(134, 10),
-(135, 10),
-(139, 10),
-(141, 10),
-(142, 10),
-(145, 10),
-(149, 10),
-(154, 10),
-(155, 10),
-(164, 10),
-(169, 10),
-(170, 10),
-(171, 10),
-(172, 10),
-(174, 10),
-(175, 10),
-(177, 10),
-(184, 10),
-(187, 10),
-(189, 10),
-(190, 10),
-(193, 10),
-(199, 10),
-(200, 10),
-(102, 11),
-(109, 11),
-(114, 11),
-(129, 11),
-(143, 11),
-(152, 11),
-(173, 11),
-(103, 12),
-(108, 12),
-(113, 12),
-(115, 12),
-(116, 12),
-(124, 12),
-(126, 12),
-(132, 12),
-(136, 12),
-(137, 12),
-(146, 12),
-(147, 12),
-(157, 12),
-(167, 12),
-(178, 12),
-(180, 12),
-(185, 12),
-(191, 12),
-(192, 12),
-(106, 13),
-(121, 13),
-(123, 13),
-(127, 13),
-(128, 13),
-(138, 13),
-(140, 13),
-(144, 13),
-(150, 13),
-(151, 13),
-(156, 13),
-(159, 13),
-(161, 13),
-(162, 13),
-(163, 13),
-(165, 13),
-(166, 13),
-(168, 13),
-(181, 13),
-(183, 13),
-(186, 13),
-(195, 13),
-(196, 13),
-(101, 14),
-(103, 14),
-(111, 14),
-(112, 14),
-(116, 14),
-(119, 14),
-(122, 14),
-(130, 14),
-(131, 14),
-(148, 14),
-(153, 14),
-(158, 14),
-(160, 14),
-(176, 14),
-(178, 14),
-(179, 14),
-(182, 14),
-(185, 14),
-(188, 14),
-(194, 14),
-(197, 14),
-(198, 14),
-(107, 20),
-(114, 20),
-(125, 20),
-(128, 20),
-(130, 20),
-(135, 20),
-(139, 20),
-(140, 20),
-(143, 20),
-(144, 20),
-(145, 20),
-(150, 20),
-(159, 20),
-(164, 20),
-(165, 20),
-(169, 20),
-(170, 20),
-(171, 20),
-(172, 20),
-(174, 20),
-(175, 20),
-(181, 20),
-(182, 20),
-(185, 20),
-(187, 20),
-(190, 20),
-(195, 20),
-(200, 20),
-(102, 21),
-(106, 21),
-(108, 21),
-(110, 21),
-(126, 21),
-(127, 21),
-(129, 21),
-(136, 21),
-(141, 21),
-(147, 21),
-(152, 21),
-(156, 21),
-(157, 21),
-(163, 21),
-(165, 21),
-(166, 21),
-(170, 21),
-(173, 21),
-(179, 21),
-(180, 21),
-(186, 21),
-(187, 21),
-(188, 21),
-(189, 21),
-(101, 22),
-(102, 22),
-(104, 22),
-(105, 22),
-(106, 22),
-(107, 22),
-(109, 22),
-(111, 22),
-(112, 22),
-(114, 22),
-(115, 22),
-(117, 22),
-(118, 22),
-(119, 22),
-(120, 22),
-(121, 22),
-(123, 22),
-(124, 22),
-(125, 22),
-(127, 22),
-(128, 22),
-(129, 22),
-(131, 22),
-(132, 22),
-(133, 22),
-(134, 22),
-(136, 22),
-(137, 22),
-(138, 22),
-(139, 22),
-(140, 22),
-(141, 22),
-(142, 22),
-(143, 22),
-(144, 22),
-(145, 22),
-(147, 22),
-(148, 22),
-(149, 22),
-(150, 22),
-(151, 22),
-(152, 22),
-(154, 22),
-(155, 22),
-(158, 22),
-(159, 22),
-(162, 22),
-(163, 22),
-(164, 22),
-(165, 22),
-(166, 22),
-(168, 22),
-(169, 22),
-(170, 22),
-(171, 22),
-(173, 22),
-(174, 22),
-(175, 22),
-(176, 22),
-(177, 22),
-(178, 22),
-(180, 22),
-(181, 22),
-(182, 22),
-(183, 22),
-(184, 22),
-(185, 22),
-(186, 22),
-(187, 22),
-(188, 22),
-(189, 22),
-(190, 22),
-(192, 22),
-(193, 22),
-(195, 22),
-(196, 22),
-(199, 22),
-(200, 22),
-(103, 23),
-(107, 23),
-(113, 23),
-(122, 23),
-(130, 23),
-(146, 23),
-(153, 23),
-(160, 23),
-(167, 23),
-(191, 23),
-(194, 23),
-(197, 23),
-(198, 23),
-(105, 30),
-(115, 30),
-(117, 30),
-(142, 30),
-(147, 30),
-(149, 30),
-(153, 30),
-(164, 30),
-(171, 30),
-(187, 30),
-(192, 30),
-(103, 31),
-(104, 31),
-(111, 31),
-(113, 31),
-(116, 31),
-(118, 31),
-(119, 31),
-(122, 31),
-(123, 31),
-(130, 31),
-(134, 31),
-(137, 31),
-(138, 31),
-(146, 31),
-(148, 31),
-(151, 31),
-(157, 31),
-(160, 31),
-(161, 31),
-(163, 31),
-(166, 31),
-(167, 31),
-(168, 31),
-(174, 31),
-(176, 31),
-(179, 31),
-(183, 31),
-(186, 31),
-(191, 31),
-(194, 31),
-(196, 31),
-(197, 31),
-(198, 31),
-(101, 32),
-(102, 32),
-(112, 32),
-(114, 32),
-(120, 32),
-(121, 32),
-(124, 32),
-(125, 32),
-(127, 32),
-(128, 32),
-(129, 32),
-(131, 32),
-(132, 32),
-(133, 32),
-(135, 32),
-(139, 32),
-(143, 32),
-(144, 32),
-(150, 32),
-(152, 32),
-(154, 32),
-(155, 32),
-(156, 32),
-(158, 32),
-(159, 32),
-(162, 32),
-(165, 32),
-(169, 32),
-(170, 32),
-(172, 32),
-(173, 32),
-(175, 32),
-(177, 32),
-(180, 32),
-(181, 32),
-(182, 32),
-(184, 32),
-(188, 32),
-(189, 32),
-(190, 32),
-(193, 32),
-(195, 32),
-(199, 32),
-(110, 33),
-(101, 40),
-(109, 40),
-(112, 40),
-(113, 40),
-(115, 40),
-(132, 40),
-(135, 40),
-(136, 40),
-(140, 40),
-(141, 40),
-(147, 40),
-(154, 40),
-(177, 40),
-(106, 41),
-(108, 41),
-(111, 41),
-(122, 41),
-(126, 41),
-(131, 41),
-(133, 41),
-(137, 41),
-(158, 41),
-(160, 41),
-(178, 41),
-(180, 41),
-(185, 41),
-(188, 41),
-(200, 41),
-(118, 42),
-(124, 42),
-(145, 42),
-(146, 42),
-(162, 42),
-(191, 42),
-(192, 42),
-(198, 42);
+(26, 1),
+(26, 20),
+(26, 50);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `menu_votes`
+--
+
+CREATE TABLE `menu_votes` (
+  `vote_id` bigint UNSIGNED NOT NULL,
+  `menu_id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `vote_type` tinyint NOT NULL COMMENT '1 for like/upvote, -1 for dislike/downvote',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `menu_votes`
+--
+
+INSERT INTO `menu_votes` (`vote_id`, `menu_id`, `user_id`, `vote_type`, `created_at`, `updated_at`) VALUES
+(5, 3, 6, 1, '2025-10-26 07:09:15', '2025-10-26 07:09:15'),
+(6, 4, 6, 1, '2025-10-26 07:09:21', '2025-10-26 07:09:21'),
+(7, 1, 3, 1, '2025-10-26 07:10:22', '2025-10-26 07:10:22'),
+(8, 2, 3, 1, '2025-10-26 07:10:26', '2025-10-26 07:10:26'),
+(9, 3, 3, 1, '2025-10-26 07:10:30', '2025-10-26 07:10:30'),
+(10, 3, 4, 1, '2025-10-26 07:11:18', '2025-10-26 07:11:18'),
+(11, 2, 4, 1, '2025-10-26 07:11:22', '2025-10-26 07:11:22'),
+(12, 1, 4, 1, '2025-10-26 07:11:26', '2025-10-26 07:11:26'),
+(13, 1, 7, 1, '2025-10-26 14:14:10', '2025-10-26 14:14:10');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `password_resets`
+--
+
+CREATE TABLE `password_resets` (
+  `reset_id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `token` varchar(255) NOT NULL,
+  `expires_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `roles`
+--
+
+CREATE TABLE `roles` (
+  `role_id` bigint UNSIGNED NOT NULL,
+  `role_name` varchar(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `roles`
+--
+
+INSERT INTO `roles` (`role_id`, `role_name`) VALUES
+(1, 'admin'),
+(2, 'editor'),
+(3, 'member');
 
 -- --------------------------------------------------------
 
@@ -728,41 +345,46 @@ INSERT INTO `menu_tags` (`menu_id`, `tag_id`) VALUES
 
 CREATE TABLE `tags` (
   `tag_id` bigint UNSIGNED NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `type` varchar(50) NOT NULL,
-  `created_at` datetime(3) DEFAULT NULL,
-  `updated_at` datetime(3) DEFAULT NULL
+  `category_id` bigint UNSIGNED NOT NULL,
+  `tag_name` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `tags`
 --
 
-INSERT INTO `tags` (`tag_id`, `name`, `type`, `created_at`, `updated_at`) VALUES
-(1, 'Ayam', 'ingredient', NULL, NULL),
-(2, 'Sapi', 'ingredient', NULL, NULL),
-(3, 'Ikan', 'ingredient', NULL, NULL),
-(4, 'Sayuran', 'ingredient', NULL, NULL),
-(5, 'Nasi', 'ingredient', NULL, NULL),
-(6, 'Mie', 'ingredient', NULL, NULL),
-(7, 'Tahu', 'ingredient', NULL, NULL),
-(8, 'Tempe', 'ingredient', NULL, NULL),
-(10, 'Goreng', 'method', NULL, NULL),
-(11, 'Bakar', 'method', NULL, NULL),
-(12, 'Rebus', 'method', NULL, NULL),
-(13, 'Tumis', 'method', NULL, NULL),
-(14, 'Kuah', 'method', NULL, NULL),
-(20, 'Pedas', 'taste', NULL, NULL),
-(21, 'Manis', 'taste', NULL, NULL),
-(22, 'Gurih', 'taste', NULL, NULL),
-(23, 'Asam', 'taste', NULL, NULL),
-(30, 'Sarapan', 'category', NULL, NULL),
-(31, 'Makan Siang', 'category', NULL, NULL),
-(32, 'Makan Malam', 'category', NULL, NULL),
-(33, 'Dessert', 'category', NULL, NULL),
-(40, 'Masakan Indonesia', 'cuisine', NULL, NULL),
-(41, 'Masakan Jawa', 'cuisine', NULL, NULL),
-(42, 'Masakan Sunda', 'cuisine', NULL, NULL);
+INSERT INTO `tags` (`tag_id`, `category_id`, `tag_name`) VALUES
+(1, 1, 'Ayam'),
+(2, 1, 'Ikan'),
+(3, 1, 'Kambing'),
+(4, 1, 'Sapi'),
+(5, 1, 'Tahu'),
+(6, 1, 'Telur'),
+(7, 1, 'Tempe'),
+(8, 1, 'Udang'),
+(9, 1, 'Nasi'),
+(10, 1, 'Mie'),
+(11, 1, 'Sayuran'),
+(20, 2, 'Goreng'),
+(21, 2, 'Bakar'),
+(22, 2, 'Rebus'),
+(23, 2, 'Tumis'),
+(24, 2, 'Kuah'),
+(25, 2, 'Panggang'),
+(26, 2, 'Sate'),
+(27, 2, 'Soto'),
+(28, 2, 'Sup'),
+(29, 2, 'Gulai'),
+(40, 3, 'Sarapan'),
+(41, 3, 'Makan Siang'),
+(42, 3, 'Makan Malam'),
+(43, 3, 'Dessert'),
+(44, 3, 'Camilan'),
+(50, 4, 'Pedas'),
+(51, 4, 'Manis'),
+(52, 4, 'Asam'),
+(53, 4, 'Gurih'),
+(54, 4, 'Asin');
 
 -- --------------------------------------------------------
 
@@ -772,24 +394,27 @@ INSERT INTO `tags` (`tag_id`, `name`, `type`, `created_at`, `updated_at`) VALUES
 
 CREATE TABLE `users` (
   `user_id` bigint UNSIGNED NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
+  `role_id` bigint UNSIGNED NOT NULL,
+  `status_user` enum('active','inactive') NOT NULL DEFAULT 'active',
+  `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `role` enum('admin','editor','member') DEFAULT 'member',
-  `created_at` datetime(3) DEFAULT NULL,
-  `updated_at` datetime(3) DEFAULT NULL
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `name`, `email`, `password`, `role`, `created_at`, `updated_at`) VALUES
-(1, 'Admin Resep', 'admin@resep.com', '$2a$10$egUzvRpnZhJszx1BWjRW4eFpof8uBTJSnXCWWE3Rn338BhEuSfvFW', 'admin', '2025-10-17 19:32:29.621', '2025-10-17 19:32:29.621'),
-(10, 'Budi Santoso', 'budi@contoh.com', '$2a$10$abcdefghijklmnopqrstuv', 'member', NULL, NULL),
-(11, 'Ani Lestari', 'ani@contoh.com', '$2a$10$abcdefghijklmnopqrstuv', 'member', NULL, NULL),
-(12, 'Candra Wijaya', 'candra@contoh.com', '$2a$10$abcdefghijklmnopqrstuv', 'member', NULL, NULL),
-(13, 'Budi Baru', 'budibaru@contoh.com', '$2a$10$cO2/KRiZIIiGMj36tlJ04.FLGYKDJ0Za6nGwaZf3FaGsd/oTMgiPK', 'member', '2025-10-18 16:32:37.942', '2025-10-18 16:32:37.942');
+INSERT INTO `users` (`user_id`, `role_id`, `status_user`, `name`, `email`, `password`, `created_at`, `updated_at`) VALUES
+(1, 1, 'active', 'Admin Utama', 'admin@gmail.com', '$2a$10$ghzwfho7MvLgg247iumqve7m.XZYZHSYeiVIigtB3ZHRufvF/9Elm', '2025-10-23 13:55:32', '2025-10-23 13:55:32'),
+(2, 3, 'active', 'Budi Santoso', 'budi@gmail.com', '$2a$10$4tSbPmmnpscN2Gfyse9GieU8aTPeQMrQC/EqxCSTG/urVFANwsMCq', '2025-10-23 13:56:42', '2025-10-26 07:08:52'),
+(3, 3, 'active', 'Ani Lestari', 'ani@gmail.com', '$2a$10$c5pLKPfMoO2h/5mYVq/wieFfeseTHThLFz7W9F0j3EQi4SqOrmMUW', '2025-10-23 13:57:06', '2025-10-26 07:10:07'),
+(4, 2, 'active', 'Candra Wijaya', 'candra@gmail.com', '$2a$10$LcnkpHDgymYKSPI2Ri5qoetb2l4bRMrppSArtF/q6GORwTY7TmzYO', '2025-10-23 13:57:25', '2025-10-26 07:11:10'),
+(5, 2, 'active', 'Editor', 'editor@gmail.com', '$2a$10$FX8E3Pplm58noZ44FLGH.ePT5ecVcjZmypNRrY3rxtbVmVQSeFGc.', '2025-10-23 13:58:08', '2025-10-23 14:30:02'),
+(6, 3, 'active', 'Asep Wiyanto', 'asep@gmail.com', '$2a$10$p1/AQxEl50ml2sAgl4YdperlBm98JXH1pWijGt.r8P6cblDWKlXJe', '2025-10-26 06:25:26', '2025-10-26 07:07:54'),
+(7, 3, 'active', 'Udin Wibawa', 'udin@gmail.com', '$2a$10$pwDQRpjTwBYKikhE.z55W.tem6C5ogMHHTLcqPiwqe/DfGam3aRbW', '2025-10-26 14:11:46', '2025-10-26 14:14:30');
 
 -- --------------------------------------------------------
 
@@ -807,57 +432,70 @@ CREATE TABLE `user_bookmarks` (
 --
 
 INSERT INTO `user_bookmarks` (`user_id`, `menu_id`) VALUES
-(11, 101),
-(12, 102),
-(11, 111),
-(12, 111),
-(11, 113),
-(11, 115),
-(11, 116),
-(12, 120),
-(10, 121),
-(12, 121),
-(11, 126),
-(10, 129),
-(10, 135),
-(10, 136),
-(11, 136),
-(12, 136),
-(12, 143),
-(10, 144),
-(12, 144),
-(11, 147),
-(11, 148),
-(12, 150),
-(10, 151),
-(12, 151),
-(11, 157),
-(10, 158),
-(12, 159),
-(10, 165),
-(10, 166),
-(11, 167),
-(10, 173),
-(12, 173),
-(12, 174),
-(11, 178),
-(11, 179),
-(11, 180),
-(10, 181),
-(11, 182),
-(11, 188),
-(12, 188),
-(12, 189),
-(11, 191),
-(11, 192),
-(10, 195),
-(10, 196),
-(11, 197),
-(11, 198);
+(2, 1),
+(3, 1),
+(4, 1),
+(6, 1),
+(7, 1),
+(3, 2),
+(4, 2),
+(6, 2),
+(2, 3),
+(4, 3),
+(6, 3),
+(2, 5),
+(2, 7);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_profiles`
+--
+
+CREATE TABLE `user_profiles` (
+  `profile_id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `bio` text,
+  `profile_picture_url` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `user_profiles`
+--
+
+INSERT INTO `user_profiles` (`profile_id`, `user_id`, `bio`, `profile_picture_url`) VALUES
+(1, 1, '', ''),
+(2, 2, '', ''),
+(3, 3, '', ''),
+(4, 4, '', ''),
+(5, 5, '', ''),
+(6, 6, '', ''),
+(7, 7, '', '');
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `categories`
+--
+ALTER TABLE `categories`
+  ADD PRIMARY KEY (`category_id`);
+
+--
+-- Indexes for table `comments`
+--
+ALTER TABLE `comments`
+  ADD PRIMARY KEY (`comment_id`),
+  ADD KEY `fk_comments_menu` (`menu_id`),
+  ADD KEY `fk_comments_user` (`user_id`);
+
+--
+-- Indexes for table `log_activity`
+--
+ALTER TABLE `log_activity`
+  ADD PRIMARY KEY (`activity_id`),
+  ADD KEY `fk_log_user` (`user_id`);
 
 --
 -- Indexes for table `menus`
@@ -867,100 +505,196 @@ ALTER TABLE `menus`
   ADD KEY `fk_menus_user` (`user_id`);
 
 --
--- Indexes for table `menu_ratings`
---
-ALTER TABLE `menu_ratings`
-  ADD PRIMARY KEY (`rating_id`),
-  ADD UNIQUE KEY `uni_menu_ratings_user_menu` (`user_id`,`menu_id`),
-  ADD KEY `fk_menu_ratings_menu` (`menu_id`);
-
---
 -- Indexes for table `menu_tags`
 --
 ALTER TABLE `menu_tags`
   ADD PRIMARY KEY (`menu_id`,`tag_id`),
-  ADD KEY `fk_menu_tags_tag` (`tag_id`);
+  ADD KEY `fk_menutags_tag` (`tag_id`);
+
+--
+-- Indexes for table `menu_votes`
+--
+ALTER TABLE `menu_votes`
+  ADD PRIMARY KEY (`vote_id`),
+  ADD UNIQUE KEY `user_menu_vote_unique` (`user_id`,`menu_id`),
+  ADD KEY `fk_votes_menu` (`menu_id`);
+
+--
+-- Indexes for table `password_resets`
+--
+ALTER TABLE `password_resets`
+  ADD PRIMARY KEY (`reset_id`),
+  ADD UNIQUE KEY `token_unique` (`token`),
+  ADD KEY `fk_resets_user` (`user_id`);
+
+--
+-- Indexes for table `roles`
+--
+ALTER TABLE `roles`
+  ADD PRIMARY KEY (`role_id`),
+  ADD UNIQUE KEY `role_name_unique` (`role_name`);
 
 --
 -- Indexes for table `tags`
 --
 ALTER TABLE `tags`
   ADD PRIMARY KEY (`tag_id`),
-  ADD UNIQUE KEY `uni_tags_name` (`name`);
+  ADD UNIQUE KEY `tag_name_unique` (`tag_name`),
+  ADD KEY `fk_tags_category` (`category_id`);
 
 --
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`user_id`),
-  ADD UNIQUE KEY `uni_users_email` (`email`);
+  ADD UNIQUE KEY `email_unique` (`email`),
+  ADD KEY `fk_users_role` (`role_id`);
 
 --
 -- Indexes for table `user_bookmarks`
 --
 ALTER TABLE `user_bookmarks`
   ADD PRIMARY KEY (`user_id`,`menu_id`),
-  ADD KEY `fk_user_bookmarks_menu` (`menu_id`);
+  ADD KEY `fk_bookmarks_menu` (`menu_id`);
+
+--
+-- Indexes for table `user_profiles`
+--
+ALTER TABLE `user_profiles`
+  ADD PRIMARY KEY (`profile_id`),
+  ADD UNIQUE KEY `user_id_unique` (`user_id`);
 
 --
 -- AUTO_INCREMENT for dumped tables
 --
 
 --
+-- AUTO_INCREMENT for table `categories`
+--
+ALTER TABLE `categories`
+  MODIFY `category_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `comments`
+--
+ALTER TABLE `comments`
+  MODIFY `comment_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `log_activity`
+--
+ALTER TABLE `log_activity`
+  MODIFY `activity_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=127;
+
+--
 -- AUTO_INCREMENT for table `menus`
 --
 ALTER TABLE `menus`
-  MODIFY `menu_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=201;
+  MODIFY `menu_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
--- AUTO_INCREMENT for table `menu_ratings`
+-- AUTO_INCREMENT for table `menu_votes`
 --
-ALTER TABLE `menu_ratings`
-  MODIFY `rating_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
+ALTER TABLE `menu_votes`
+  MODIFY `vote_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+
+--
+-- AUTO_INCREMENT for table `password_resets`
+--
+ALTER TABLE `password_resets`
+  MODIFY `reset_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `roles`
+--
+ALTER TABLE `roles`
+  MODIFY `role_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `tags`
 --
 ALTER TABLE `tags`
-  MODIFY `tag_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `tag_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `user_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT for table `user_profiles`
+--
+ALTER TABLE `user_profiles`
+  MODIFY `profile_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- Constraints for dumped tables
 --
 
 --
+-- Constraints for table `comments`
+--
+ALTER TABLE `comments`
+  ADD CONSTRAINT `fk_comments_menu` FOREIGN KEY (`menu_id`) REFERENCES `menus` (`menu_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_comments_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `log_activity`
+--
+ALTER TABLE `log_activity`
+  ADD CONSTRAINT `fk_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `menus`
 --
 ALTER TABLE `menus`
-  ADD CONSTRAINT `fk_menus_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
-  ADD CONSTRAINT `fk_users_menus` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
-
---
--- Constraints for table `menu_ratings`
---
-ALTER TABLE `menu_ratings`
-  ADD CONSTRAINT `fk_menu_ratings_menu` FOREIGN KEY (`menu_id`) REFERENCES `menus` (`menu_id`),
-  ADD CONSTRAINT `fk_menu_ratings_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
+  ADD CONSTRAINT `fk_menus_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
 
 --
 -- Constraints for table `menu_tags`
 --
 ALTER TABLE `menu_tags`
-  ADD CONSTRAINT `fk_menu_tags_menu` FOREIGN KEY (`menu_id`) REFERENCES `menus` (`menu_id`),
-  ADD CONSTRAINT `fk_menu_tags_tag` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`tag_id`);
+  ADD CONSTRAINT `fk_menutags_menu` FOREIGN KEY (`menu_id`) REFERENCES `menus` (`menu_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_menutags_tag` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`tag_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `menu_votes`
+--
+ALTER TABLE `menu_votes`
+  ADD CONSTRAINT `fk_votes_menu` FOREIGN KEY (`menu_id`) REFERENCES `menus` (`menu_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_votes_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `password_resets`
+--
+ALTER TABLE `password_resets`
+  ADD CONSTRAINT `fk_resets_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `tags`
+--
+ALTER TABLE `tags`
+  ADD CONSTRAINT `fk_tags_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`);
+
+--
+-- Constraints for table `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `fk_users_role` FOREIGN KEY (`role_id`) REFERENCES `roles` (`role_id`);
 
 --
 -- Constraints for table `user_bookmarks`
 --
 ALTER TABLE `user_bookmarks`
-  ADD CONSTRAINT `fk_user_bookmarks_menu` FOREIGN KEY (`menu_id`) REFERENCES `menus` (`menu_id`),
-  ADD CONSTRAINT `fk_user_bookmarks_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
+  ADD CONSTRAINT `fk_bookmarks_menu` FOREIGN KEY (`menu_id`) REFERENCES `menus` (`menu_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_bookmarks_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `user_profiles`
+--
+ALTER TABLE `user_profiles`
+  ADD CONSTRAINT `fk_profiles_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
