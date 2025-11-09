@@ -2,11 +2,11 @@ package models
 
 // Tag menyimpan data tag yang bisa ditempelkan ke resep.
 type Tag struct {
-	TagID      uint   `gorm:"primaryKey;column:tag_id"`
-	CategoryID uint   `gorm:"not null"`
-	TagName    string `gorm:"size:100;not null;unique;column:tag_name"`
+	TagID      uint   `gorm:"primaryKey;column:tag_id" json:"tag_id"`
+	CategoryID uint   `gorm:"not null" json:"category_id"`
+	TagName    string `gorm:"size:100;not null;unique;column:tag_name" json:"tag_name"`
 
-	Category Category `gorm:"foreignKey:CategoryID"`
+	Category Category `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
 }
 
 // CreateTagInput mendefinisikan input JSON untuk membuat tag baru.

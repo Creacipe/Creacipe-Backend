@@ -274,6 +274,16 @@ func GetPopularMenus(c *gin.Context) {
 // GetMyMenus mendapatkan semua resep yang dibuat oleh user yang sedang login
 func GetMyMenus(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
+
+	var menus []models.Menu
+	
+	// Gunakan GORM dengan Preload untuk mendapatkan Tags
+	if err := config.DB.Preload("Tags").Where("user_id = ?", user.UserID).Order("created_at DESC").Find(&menus).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep"})
+		return
+	}
+	
+	// Tambahkan stats untuk setiap menu
 	
 	type MenuWithStats struct {
 		models.Menu
@@ -283,22 +293,23 @@ func GetMyMenus(c *gin.Context) {
 	}
 	
 	var results []MenuWithStats
-	query := `
-		SELECT 
-			m.*,
-			IFNULL(SUM(mv.likes_count), 0) as total_likes,
-			IFNULL(SUM(mv.dislikes_count), 0) as total_dislikes,
-			(SELECT COUNT(*) FROM user_bookmarks WHERE menu_id = m.menu_id) as total_bookmarks
-		FROM menus m
-		LEFT JOIN menu_votes mv ON m.menu_id = mv.menu_id
-		WHERE m.user_id = ?
-		GROUP BY m.menu_id
-		ORDER BY m.created_at DESC
-	`
-	
-	if err := config.DB.Raw(query, user.UserID).Scan(&results).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep"})
-		return
+	for _, menu := range menus {
+		var totalLikes, totalDislikes int64
+		var totalBookmarks int64
+		
+		// Get likes and dislikes
+		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&totalLikes)
+		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&totalDislikes)
+		
+		// Get bookmarks count
+		config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&totalBookmarks)
+		
+		results = append(results, MenuWithStats{
+			Menu:           menu,
+			TotalLikes:     int(totalLikes),
+			TotalDislikes:  int(totalDislikes),
+			TotalBookmarks: int(totalBookmarks),
+		})
 	}
 	
 	c.JSON(http.StatusOK, gin.H{"data": results})
@@ -307,7 +318,25 @@ func GetMyMenus(c *gin.Context) {
 // GetMyBookmarks mendapatkan semua resep yang di-bookmark oleh user
 func GetMyBookmarks(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
+
+	// Get menu IDs yang di-bookmark
+	var bookmarkedMenuIDs []uint
+	config.DB.Table("user_bookmarks").Where("user_id = ?", user.UserID).Pluck("menu_id", &bookmarkedMenuIDs)
 	
+	if len(bookmarkedMenuIDs) == 0 {
+		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		return
+	}
+	
+	var menus []models.Menu
+	
+	// Gunakan GORM dengan Preload untuk mendapatkan Tags
+	if err := config.DB.Preload("Tags").Where("menu_id IN ?", bookmarkedMenuIDs).Order("created_at DESC").Find(&menus).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil bookmark"})
+		return
+	}
+	
+	// Tambahkan stats untuk setiap menu
 	type MenuWithStats struct {
 		models.Menu
 		TotalLikes     int `json:"total_likes"`
@@ -316,33 +345,23 @@ func GetMyBookmarks(c *gin.Context) {
 	}
 	
 	var results []MenuWithStats
-	query := `
-		SELECT 
-			m.menu_id,
-			m.user_id,
-			m.title,
-			m.description,
-			m.ingredients,
-			m.instructions,
-			m.image_url,
-			m.status,
-			m.created_at,
-			m.updated_at,
-			COALESCE(SUM(mv.likes_count), 0) as total_likes,
-			COALESCE(SUM(mv.dislikes_count), 0) as total_dislikes,
-			(SELECT COUNT(*) FROM user_bookmarks WHERE menu_id = m.menu_id) as total_bookmarks
-		FROM menus m
-		INNER JOIN user_bookmarks ub ON ub.menu_id = m.menu_id
-		LEFT JOIN menu_votes mv ON m.menu_id = mv.menu_id
-		WHERE ub.user_id = ?
-		GROUP BY m.menu_id, m.user_id, m.title, m.description, m.ingredients, m.instructions, 
-		         m.image_url, m.status, m.created_at, m.updated_at
-		ORDER BY m.created_at DESC
-	`
-	
-	if err := config.DB.Raw(query, user.UserID).Scan(&results).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil bookmark"})
-		return
+	for _, menu := range menus {
+		var totalLikes, totalDislikes int64
+		var totalBookmarks int64
+		
+		// Get likes and dislikes
+		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&totalLikes)
+		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&totalDislikes)
+		
+		// Get bookmarks count
+		config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&totalBookmarks)
+		
+		results = append(results, MenuWithStats{
+			Menu:           menu,
+			TotalLikes:     int(totalLikes),
+			TotalDislikes:  int(totalDislikes),
+			TotalBookmarks: int(totalBookmarks),
+		})
 	}
 	
 	c.JSON(http.StatusOK, gin.H{"data": results})
