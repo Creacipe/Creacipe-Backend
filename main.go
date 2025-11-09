@@ -6,6 +6,7 @@ import (
 	"creacipe-backend/controllers"
 	"creacipe-backend/middlewares"
 	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -21,6 +22,14 @@ func init() {
 
 func main() {
 	r := gin.Default()
+
+	// --- 2. TAMBAHKAN DUA BARIS INI ---
+	// Pastikan folder 'assets' ada
+	os.MkdirAll("./assets", os.ModePerm) 
+	// Sajikan folder 'assets' di URL '/assets'
+	r.Static("/assets", "./assets") 
+	// ---------------------------------
+
 	r.Use(config.CORSMiddleware())
 
 	api := r.Group("/api")
@@ -37,6 +46,7 @@ func main() {
 		api.POST("/forgot-password", controllers.ForgotPassword)
 		api.POST("/reset-password", controllers.ResetPassword)
 		api.GET("/categories", controllers.GetAllCategories)
+		api.POST("/auth/refresh", controllers.RefreshToken)
 
 		// --- Rute Terotentikasi ---
 		auth := api.Group("/")
@@ -51,10 +61,13 @@ func main() {
 			auth.DELETE("/menus/:id/bookmark", controllers.UnbookmarkMenu)
 			auth.POST("/menus/:id/like", controllers.LikeMenu)
 			auth.POST("/menus/:id/dislike", controllers.DislikeMenu)
+			auth.GET("/menus/:id/interaction-status", controllers.GetUserInteractionStatus)
 			auth.GET("/me/recommendations", controllers.GetPersonalRecommendations)
 			auth.GET("/me", controllers.GetMyProfile)
 			auth.PUT("/me", controllers.UpdateMyProfile)
-			
+			auth.GET("/me/menus", controllers.GetMyMenus)
+			auth.GET("/me/bookmarks", controllers.GetMyBookmarks)
+			auth.GET("/me/collection", controllers.GetMyCollection)
 
 			// Rute Moderasi (Editor & Admin)
 			editorRoutes := auth.Group("/editor")

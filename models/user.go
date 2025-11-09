@@ -4,22 +4,22 @@ import "time"
 
 // User mendefinisikan data utama pengguna untuk login dan relasi.
 type User struct {
-	UserID    uint   `gorm:"primaryKey;column:user_id"`
-	RoleID    uint   `gorm:"not null"`
-	StatusUser string `gorm:"type:enum('active','inactive');default:'active';column:status_user"`
-	Name      string `gorm:"size:255;not null"`
-	Email     string `gorm:"size:255;not null;unique"`
+	UserID    uint   `gorm:"primaryKey;column:user_id" json:"user_id"`
+	RoleID    uint   `gorm:"not null" json:"role_id"`
+	StatusUser string `gorm:"type:enum('active','inactive');default:'active';column:status_user" json:"status_user"`
+	Name      string `gorm:"size:255;not null" json:"name"`
+	Email     string `gorm:"size:255;not null;unique" json:"email"`
 	Password  string `gorm:"size:255;not null" json:"-"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
 	// --- Relasi ---
-	Role      Role
-	Profile   UserProfile `gorm:"foreignKey:UserID"`
-	Menus     []Menu      `gorm:"foreignKey:UserID"`
-	Comments  []Comment   `gorm:"foreignKey:UserID"`
-	Votes     []MenuVote  `gorm:"foreignKey:UserID"`
-	Bookmarks []*Menu     `gorm:"many2many:user_bookmarks;foreignKey:UserID;joinForeignKey:user_id;References:MenuID;joinReferences:menu_id"`
+	Role      Role 		    `gorm:"foreignKey:RoleID;references:RoleID" json:"role,omitempty"`
+	Profile   UserProfile `gorm:"foreignKey:UserID" json:"profile,omitempty"`
+	Menus     []Menu      `gorm:"foreignKey:UserID" json:"-"`
+	Comments  []Comment   `gorm:"foreignKey:UserID" json:"-"`
+	Votes     []MenuVote  `gorm:"foreignKey:UserID" json:"-"`
+	Bookmarks []*Menu     `gorm:"many2many:user_bookmarks;foreignKey:UserID;joinForeignKey:user_id;References:MenuID;joinReferences:menu_id" json:"-"`
 }
 
 // AdminCreateUserInput mendefinisikan input untuk membuat user baru oleh admin.

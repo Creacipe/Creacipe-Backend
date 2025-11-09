@@ -18,7 +18,7 @@ import (
 func GetRecommendations(c *gin.Context) {
 	// 1. Ambil menu_id dari URL.
 	menuID := c.Param("id")
-	log.Printf("[DEBUG] Menerima permintaan rekomendasi untuk menu_id: %s", menuID) // Log 1
+	// log.Printf("[DEBUG] Menerima permintaan rekomendasi untuk menu_id: %s", menuID) // Log 1
 
 	// 2. Ambil title dari database berdasarkan menu_id.
 	var menu models.Menu
@@ -28,7 +28,7 @@ func GetRecommendations(c *gin.Context) {
 		return
 	}
 	title := menu.Title
-	log.Printf("[DEBUG] Judul ditemukan di DB: '%s'", title)
+	// log.Printf("[DEBUG] Judul ditemukan di DB: '%s'", title)
 	if title == "" {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Judul resep kosong"})
 		return
@@ -36,11 +36,11 @@ func GetRecommendations(c *gin.Context) {
 
 	// 3. Encode title agar aman dikirim di URL.
 	encodedTitle := url.PathEscape(title)
-	log.Printf("[DEBUG] Judul diencode: '%s'", encodedTitle) // Log 3
+	// log.Printf("[DEBUG] Judul diencode: '%s'", encodedTitle) // Log 3
 
 	// 4. Panggil service Python dengan endpoint /recommend/title/<encoded_title>.
 	pyServiceURL := "http://localhost:5000/recommend/title/" + encodedTitle
-	log.Printf("[DEBUG] Memanggil Python service: %s", pyServiceURL) // Log 4
+	// log.Printf("[DEBUG] Memanggil Python service: %s", pyServiceURL) // Log 4
 	resp, err := http.Get(pyServiceURL)
 	if err != nil {
 		log.Printf("Error contacting Python service at %s: %v", pyServiceURL, err)
@@ -59,7 +59,7 @@ func GetRecommendations(c *gin.Context) {
 	// Teruskan error dari Python jika ada.
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("Python service returned status %d: %s", resp.StatusCode, string(body))
-		log.Printf("[ERROR] Python service error (%d): %s", resp.StatusCode, string(body)) // Log 5
+		// log.Printf("[ERROR] Python service error (%d): %s", resp.StatusCode, string(body)) // Log 5
 		c.Data(resp.StatusCode, "application/json", body)
 		return
 	}
@@ -67,19 +67,55 @@ func GetRecommendations(c *gin.Context) {
 	// 5. Proses hasil (daftar JUDUL resep) dari Python.
 	var recommendedTitles []string
 	if err := json.Unmarshal(body, &recommendedTitles); err != nil {
-		log.Printf("[ERROR] Gagal unmarshal judul rekomendasi: %v", err) // Log 6
+		// log.Printf("[ERROR] Gagal unmarshal judul rekomendasi: %v", err) // Log 6
 		log.Printf("Error unmarshalling recommended titles: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memproses hasil rekomendasi (judul)"})
 		return
 	}
-	log.Printf("[DEBUG] Judul rekomendasi diterima dari Python: %v", recommendedTitles) // Log 7
+	// log.Printf("[DEBUG] Judul rekomendasi diterima dari Python: %v", recommendedTitles) // Log 7
 
 	// 6. Ambil detail resep lengkap dari database berdasarkan JUDUL yang direkomendasikan.
-	var recommendedMenus []models.Menu
+	// 6. Ambil detail resep lengkap dari database berdasarkan JUDUL yang direkomendasikan dengan statistik.
+	type MenuWithStats struct {
+		models.Menu
+		TotalLikes     int `json:"total_likes"`
+		TotalDislikes  int `json:"total_dislikes"`
+		TotalBookmarks int `json:"total_bookmarks"`
+	}
+	
+	var recommendedMenus []MenuWithStats
 	if len(recommendedTitles) > 0 {
-		log.Printf("[DEBUG] Mencari menu di DB dengan judul: %v", recommendedTitles) // Log 8
-		if err := config.DB.Preload("User").Where("LOWER(title) IN ?", recommendedTitles).Find(&recommendedMenus).Error; err != nil {
-			log.Printf("[ERROR] Gagal mengambil detail menu rekomendasi: %v", err) // Log 9
+		// log.Printf("[DEBUG] Mencari menu di DB dengan judul: %v", recommendedTitles) // Log 8
+		// Convert semua recommendedTitles ke lowercase untuk matching
+		lowercaseTitles := make([]string, len(recommendedTitles))
+		for i, title := range recommendedTitles {
+			lowercaseTitles[i] = strings.ToLower(title)
+		}
+		// Query dengan statistik vote dan bookmark
+		query := `
+			SELECT 
+				m.menu_id,
+				m.user_id,
+				m.title,
+				m.description,
+				m.ingredients,
+				m.instructions,
+				m.image_url,
+				m.status,
+				m.created_at,
+				m.updated_at,
+				COALESCE(SUM(mv.likes_count), 0) as total_likes,
+				COALESCE(SUM(mv.dislikes_count), 0) as total_dislikes,
+				(SELECT COUNT(*) FROM user_bookmarks WHERE menu_id = m.menu_id) as total_bookmarks
+			FROM menus m
+			LEFT JOIN menu_votes mv ON m.menu_id = mv.menu_id
+			WHERE LOWER(m.title) IN ? AND m.status = 'approved'
+			GROUP BY m.menu_id, m.user_id, m.title, m.description, m.ingredients, m.instructions,
+			         m.image_url, m.status, m.created_at, m.updated_at
+		`
+		
+		if err := config.DB.Raw(query, lowercaseTitles).Scan(&recommendedMenus).Error; err != nil {
+			// log.Printf("[ERROR] Gagal mengambil detail menu rekomendasi: %v", err) // Log 9
 			log.Printf("Error fetching recommended menus by title: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil detail resep dari judul rekomendasi"})
 			return

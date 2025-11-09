@@ -4,23 +4,23 @@ import "time"
 
 // Menu adalah model utama untuk resep.
 type Menu struct {
-	MenuID          uint      `gorm:"primaryKey;column:menu_id"`
-	UserID          uint      `gorm:"not null"`
-	Title           string    `gorm:"size:255;not null"`
-	Description     string    `gorm:"type:text"`
-	Ingredients     string    `gorm:"type:text"`
-	Instructions    string    `gorm:"type:text"`
-	ImageURL        string    `gorm:"type:varchar(255)"`
-	Status          string    `gorm:"type:enum('pending','approved','rejected');default:'pending'"`
-	RejectionReason string    `gorm:"type:text"`
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	MenuID          uint      `gorm:"primaryKey;column:menu_id" json:"menu_id"`
+	UserID          uint      `gorm:"not null" json:"user_id"`
+	Title           string    `gorm:"size:255;not null" json:"title"`
+	Description     string    `gorm:"type:text" json:"description"`
+	Ingredients     string    `gorm:"type:text" json:"ingredients"`
+	Instructions    string    `gorm:"type:text" json:"instructions"`
+	ImageURL        string    `gorm:"type:varchar(255)" json:"image_url"`
+	Status          string    `gorm:"type:enum('pending','approved','rejected');default:'pending'" json:"status"`
+	RejectionReason string    `gorm:"type:text" json:"rejection_reason"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 
 	// --- Relasi ---
-	User     User       `gorm:"foreignKey:UserID"`
-	Comments []Comment  `gorm:"foreignKey:MenuID"`
-	Votes    []MenuVote `gorm:"foreignKey:MenuID"`
-	Tags     []*Tag     `gorm:"many2many:menu_tags;foreignKey:MenuID;joinForeignKey:menu_id;References:TagID;joinReferences:tag_id"`
+	User     User       `gorm:"foreignKey:UserID;references:UserID" json:"user,omitempty"`
+	Comments []Comment  `gorm:"foreignKey:MenuID" json:"-"`
+	Votes    []MenuVote `gorm:"foreignKey:MenuID" json:"-"`
+	Tags     []*Tag     `gorm:"many2many:menu_tags;foreignKey:MenuID;joinForeignKey:menu_id;References:TagID;joinReferences:tag_id" json:"tags,omitempty"`
 }
 
 // --- Struct Input didefinisikan di sini ---

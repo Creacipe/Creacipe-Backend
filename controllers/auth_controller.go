@@ -64,6 +64,9 @@ func Register(c *gin.Context) {
 
 // Login menangani logika autentikasi pengguna dan pembuatan token JWT.
 // Login menangani logika autentikasi dengan pengecekan status.
+// Login sekarang mengembalikan access_token dan refresh_token
+// --- FUNGSI LOGIN (DIPERBARUI) ---
+// Login sekarang mengembalikan access_token dan refresh_token
 func Login(c *gin.Context) {
 	var input models.LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -72,39 +75,101 @@ func Login(c *gin.Context) {
 	}
 
 	var user models.User
-	// Langkah 1: Cari user berdasarkan email saja, tanpa peduli status.
+    // Pastikan Preload("Role") ada di sini
 	if err := config.DB.Preload("Role").Where("email = ?", input.Email).First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email atau password salah"})
 		return
 	}
 
-	// Langkah 2: Setelah user ditemukan, periksa statusnya.
 	if user.StatusUser == "inactive" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Akun Anda telah dinonaktifkan. Silakan hubungi admin."})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Akun Anda telah dinonaktifkan."})
 		return
 	}
 
-	// Langkah 3: Jika aktif, baru periksa password.
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email atau password salah"})
 		return
 	}
 
-	// Jika semua berhasil, buat token JWT.
-	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":  user.UserID,
-		"role": user.Role.RoleName,
-		"exp":  time.Now().Add(time.Hour * 1).Unix(),
-	})
-
-	token, err := claims.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	// 1. Buat Access Token (15 menit)
+    // KIRIM datanya secara EKSPLISIT
+	accessToken, err := helpers.CreateAccessToken(user.UserID, user.Role.RoleName)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat access token"})
+		return
+	}
+
+	// 2. Buat Refresh Token (7 hari)
+    // KIRIM datanya secara EKSPLISIT
+	refreshToken, err := helpers.CreateRefreshToken(user.UserID, user.Role.RoleName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat refresh token"})
 		return
 	}
 
 	helpers.CreateLog(user.UserID, "USER_LOGIN", user.UserID, "users")
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	
+	c.JSON(http.StatusOK, gin.H{
+		"access_token": accessToken,
+		"refresh_token": refreshToken,
+	})
+}
+
+// --- FUNGSI REFRESH TOKEN (BARU & DIPERBARUI) ---
+// RefreshToken memvalidasi refresh token dan memberikan access token baru
+func RefreshToken(c *gin.Context) {
+	var body struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token dibutuhkan"})
+		return
+	}
+
+	// 1. Validasi token
+	token, err := jwt.Parse(body.RefreshToken, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+
+	if err != nil || !token.Valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token tidak valid atau kedaluwarsa"})
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Gagal membaca token"})
+		return
+	}
+
+	// 2. Ambil UserID dari token
+	userID := uint(claims["sub"].(float64))
+	var user models.User
+	
+	// 3. Ambil data user terbaru (DENGAN ROLE)
+	if err := config.DB.Preload("Role").First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak ditemukan"})
+		return
+	}
+
+	if user.StatusUser == "inactive" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Akun Anda telah dinonaktifkan."})
+		return
+	}
+
+	// 4. Buat Access Token baru
+    // KIRIM datanya secara EKSPLISIT
+	newAccessToken, err := helpers.CreateAccessToken(user.UserID, user.Role.RoleName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat access token baru"})
+		return
+	}
+
+	// 5. Kembalikan token baru
+	c.JSON(http.StatusOK, gin.H{
+		"access_token": newAccessToken,
+	})
 }
 
 //-------untuk reset password-------//

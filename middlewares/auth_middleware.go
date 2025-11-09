@@ -48,8 +48,6 @@ func RequireAuth(c *gin.Context) {
 		var user models.User
 		userID := uint(claims["sub"].(float64))
 		
-		// --- PERBAIKAN 1: Tambahkan Preload("Role") ---
-		// Ini akan memberitahu GORM untuk mengambil juga data dari tabel 'roles' yang berelasi.
 		config.DB.Preload("Role").First(&user, userID)
 
 		if user.UserID == 0 {
@@ -76,8 +74,6 @@ func AuthorizeRole(allowedRoles ...string) gin.HandlerFunc {
 		
 		isAllowed := false
 		for _, role := range allowedRoles {
-			// --- PERBAIKAN 2: Bandingkan dengan user.Role.RoleName ---
-			// Karena sudah di-Preload, kita bisa langsung akses nama perannya.
 			if user.Role.RoleName == role {
 				isAllowed = true
 				break

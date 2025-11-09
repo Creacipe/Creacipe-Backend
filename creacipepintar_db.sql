@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Oct 26, 2025 at 02:16 PM
+-- Generation Time: Nov 09, 2025 at 07:24 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -201,7 +201,51 @@ INSERT INTO `log_activity` (`activity_id`, `user_id`, `action`, `target_id`, `ta
 (123, 7, 'USER_REGISTER', 7, 'users', '2025-10-26 14:11:46'),
 (124, 7, 'USER_LOGIN', 7, 'users', '2025-10-26 14:12:09'),
 (125, 7, 'LIKE_MENU', 1, 'menus', '2025-10-26 14:14:10'),
-(126, 7, 'BOOKMARK_MENU', 1, 'menus', '2025-10-26 14:14:30');
+(126, 7, 'BOOKMARK_MENU', 1, 'menus', '2025-10-26 14:14:30'),
+(127, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 09:51:48'),
+(128, 2, 'LIKE_MENU', 5, 'menus', '2025-11-08 09:54:39'),
+(129, 2, 'DISLIKE_MENU', 5, 'menus', '2025-11-08 09:54:48'),
+(130, 2, 'BOOKMARK_MENU', 5, 'menus', '2025-11-08 09:54:50'),
+(131, 2, 'LIKE_MENU', 1, 'menus', '2025-11-08 10:10:45'),
+(132, 2, 'REMOVE_VOTE', 1, 'menus', '2025-11-08 10:10:46'),
+(133, 2, 'LIKE_MENU', 1, 'menus', '2025-11-08 10:10:46'),
+(134, 2, 'REMOVE_VOTE', 1, 'menus', '2025-11-08 10:10:47'),
+(135, 2, 'LIKE_MENU', 1, 'menus', '2025-11-08 10:10:48'),
+(136, 2, 'REMOVE_VOTE', 1, 'menus', '2025-11-08 10:10:48'),
+(137, 2, 'LIKE_MENU', 1, 'menus', '2025-11-08 10:10:49'),
+(138, 2, 'REMOVE_VOTE', 1, 'menus', '2025-11-08 10:10:49'),
+(139, 2, 'LIKE_MENU', 1, 'menus', '2025-11-08 10:10:49'),
+(140, 2, 'REMOVE_VOTE', 1, 'menus', '2025-11-08 10:10:50'),
+(141, 2, 'BOOKMARK_MENU', 1, 'menus', '2025-11-08 10:10:50'),
+(142, 2, 'UNBOOKMARK_MENU', 1, 'menus', '2025-11-08 10:10:52'),
+(143, 2, 'BOOKMARK_MENU', 1, 'menus', '2025-11-08 10:10:52'),
+(144, 2, 'UNBOOKMARK_MENU', 1, 'menus', '2025-11-08 10:10:53'),
+(145, 2, 'BOOKMARK_MENU', 11, 'menus', '2025-11-08 10:10:56'),
+(146, 2, 'LIKE_MENU', 11, 'menus', '2025-11-08 10:10:58'),
+(147, 2, 'BOOKMARK_MENU', 10, 'menus', '2025-11-08 10:11:07'),
+(148, 2, 'LIKE_MENU', 10, 'menus', '2025-11-08 10:11:08'),
+(149, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 10:13:50'),
+(150, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 11:38:36'),
+(151, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 11:38:59'),
+(152, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 11:39:33'),
+(153, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 11:40:20'),
+(154, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 11:40:59'),
+(155, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 11:41:05'),
+(156, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 12:03:36'),
+(157, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 12:05:24'),
+(158, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 12:15:19'),
+(159, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 12:15:38'),
+(160, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 12:31:31'),
+(161, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 12:47:39'),
+(162, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 12:48:15'),
+(163, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 12:54:31'),
+(164, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 13:03:28'),
+(165, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 13:18:24'),
+(166, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 13:24:26'),
+(167, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 13:46:32'),
+(168, 2, 'USER_LOGIN', 2, 'users', '2025-11-08 13:47:52'),
+(169, 2, 'CREATE_MENU', 29, 'menus', '2025-11-09 06:02:17'),
+(170, 2, 'USER_LOGIN', 2, 'users', '2025-11-09 06:49:39');
 
 -- --------------------------------------------------------
 
@@ -252,7 +296,8 @@ INSERT INTO `menus` (`menu_id`, `user_id`, `title`, `description`, `ingredients`
 (23, 4, 'Telur Kornet', 'Resep Telur Kornet yang lezat dan mudah dibuat.', '[\"1/2 kaleng kornet--2-3 buah bawang prei--2 buah telur--1 sdm tepung terigu--secukupnya Cabe rawit--2 jumput Garam--1/2 sdt Merica--1/2 sdm Saus tiram--\"]', '[\"Campur kornet\", \"telur\", \"bawang prei dan cabe yg sudah di iris tipis. Tambahkan garam merica saos tiram secukupnya dan tepung terigu. Goreng 1 sdm dulu setelah matang baru cek rasa. Dirasa sudah pas. Adonan siap di goreng.😊--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'pending', '', '2025-10-23 15:34:58', '2025-10-23 15:34:58'),
 (24, 4, 'Penyet Tempe Sambel Korek Kemangi', 'Resep Penyet Tempe Sambel Korek Kemangi yang lezat dan mudah dibuat.', '[\"2 buah tempe--1 genggam Daun kemangi--15 cabe rawit--2 siung bawang putih--Gula--Garam--\"]', '[\"Iris tempe jd beberapa potong, bumbui dg bawang putih dan garam\", \"Goreng sampai kering--Ulek cabe rawit dan 1 siung bawang putih ukuran besar tambah gula garam sesuai selera--Setelah halus tuang minyak goreng panas bekas goreng tempe td--Penyet tempe diatas sambel dan beri daun kemangi--Tempe penyet siap disantap 😋😋😋--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'pending', '', '2025-10-23 15:35:11', '2025-10-23 15:35:11'),
 (25, 4, 'Udang ala pop corn', 'Resep Udang ala pop corn yang lezat dan mudah dibuat.', '[\"1/4 kg udang basah ukuran sedang--1 bungkus kobe tepung ayam super crispy--secukupnya Air matang--Minyak untuk menggoreng--\"]', '[\"Buang kepala dan cangkang udang.--Cuci bersih udang.--Tepung bumbu dibagi jadi 2 adonan. Adonan basah dan adonan kering.--Masukkan udang ke dalam adonan tepung bumbu kering\", \"gulirkan ke dlm tepung sambil ditekan2. Lalu masukkan ke dalam Tepung bumbu adonan basah gulirkan lagi sambil di tekan2\", \"lalu masukkan lagi di adonan tepung bumbu kering Sambil ditekan2 agar tepung menempel sempurna.--Panaskan minyak goreng. Lalu goreng udang sampai kuning keemasan.--Angkat dan tiriskan.--Sajikan selagi hangat 😊--\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'rejected', 'Instruksi kurang jelas.', '2025-10-23 15:35:58', '2025-10-26 06:04:56'),
-(26, 4, 'Ayam Geprek', 'Resep Ayam Geprek yang lezat dan mudah dibuat.', '[\"250 gr daging ayam (saya pakai fillet)\", \"Secukupnya gula dan garam\", \"50-100 gr tepung ayam serbaguna\", \"Secukupnya lalapan (kemangi,kol,timun)\", \"Secukupnya minyak panas\", \"❤sambal korek\", \"Secukupnya cabe rawit merah dan bwg putih\"]', '[\"Goreng ayam seperti ayam krispi\", \"Ulek semua bahan sambal kemudian campur dengan minyak panas bekas goreng ayam\", \"Geprek ayam kemudian campur dengan sambal,sajikan dengan lalapan ❤\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 16:23:16', '2025-10-26 06:02:33');
+(26, 4, 'Ayam Geprek', 'Resep Ayam Geprek yang lezat dan mudah dibuat.', '[\"250 gr daging ayam (saya pakai fillet)\", \"Secukupnya gula dan garam\", \"50-100 gr tepung ayam serbaguna\", \"Secukupnya lalapan (kemangi,kol,timun)\", \"Secukupnya minyak panas\", \"❤sambal korek\", \"Secukupnya cabe rawit merah dan bwg putih\"]', '[\"Goreng ayam seperti ayam krispi\", \"Ulek semua bahan sambal kemudian campur dengan minyak panas bekas goreng ayam\", \"Geprek ayam kemudian campur dengan sambal,sajikan dengan lalapan ❤\"]', 'https://asset.kompas.com/crops/MZ_KjUJ4rxuZmCX1-_Kk3XplKyU=/32x0:1000x645/1200x800/data/photo/2022/02/11/62062e047e908.jpg', 'approved', '', '2025-10-23 16:23:16', '2025-10-26 06:02:33'),
+(29, 2, 'semur daging', 'semur daging ', '[\"1/2 daging sapi\", \"royco 1kg\"]', '[\"semur daging\", \"sampai mateng\"]', 'http://localhost:8080/assets/semur-daging-1.jpg', 'pending', '', '2025-11-09 06:02:17', '2025-11-09 06:02:17');
 
 -- --------------------------------------------------------
 
@@ -271,8 +316,11 @@ CREATE TABLE `menu_tags` (
 
 INSERT INTO `menu_tags` (`menu_id`, `tag_id`) VALUES
 (26, 1),
+(29, 4),
 (26, 20),
-(26, 50);
+(26, 50),
+(29, 50),
+(29, 53);
 
 -- --------------------------------------------------------
 
@@ -284,7 +332,8 @@ CREATE TABLE `menu_votes` (
   `vote_id` bigint UNSIGNED NOT NULL,
   `menu_id` bigint UNSIGNED NOT NULL,
   `user_id` bigint UNSIGNED NOT NULL,
-  `vote_type` tinyint NOT NULL COMMENT '1 for like/upvote, -1 for dislike/downvote',
+  `likes_count` int NOT NULL DEFAULT '0',
+  `dislikes_count` int NOT NULL DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -293,16 +342,19 @@ CREATE TABLE `menu_votes` (
 -- Dumping data for table `menu_votes`
 --
 
-INSERT INTO `menu_votes` (`vote_id`, `menu_id`, `user_id`, `vote_type`, `created_at`, `updated_at`) VALUES
-(5, 3, 6, 1, '2025-10-26 07:09:15', '2025-10-26 07:09:15'),
-(6, 4, 6, 1, '2025-10-26 07:09:21', '2025-10-26 07:09:21'),
-(7, 1, 3, 1, '2025-10-26 07:10:22', '2025-10-26 07:10:22'),
-(8, 2, 3, 1, '2025-10-26 07:10:26', '2025-10-26 07:10:26'),
-(9, 3, 3, 1, '2025-10-26 07:10:30', '2025-10-26 07:10:30'),
-(10, 3, 4, 1, '2025-10-26 07:11:18', '2025-10-26 07:11:18'),
-(11, 2, 4, 1, '2025-10-26 07:11:22', '2025-10-26 07:11:22'),
-(12, 1, 4, 1, '2025-10-26 07:11:26', '2025-10-26 07:11:26'),
-(13, 1, 7, 1, '2025-10-26 14:14:10', '2025-10-26 14:14:10');
+INSERT INTO `menu_votes` (`vote_id`, `menu_id`, `user_id`, `likes_count`, `dislikes_count`, `created_at`, `updated_at`) VALUES
+(5, 3, 6, 1, 0, '2025-10-26 07:09:15', '2025-11-09 07:17:49'),
+(6, 4, 6, 1, 0, '2025-10-26 07:09:21', '2025-11-09 07:17:49'),
+(7, 1, 3, 1, 0, '2025-10-26 07:10:22', '2025-11-09 07:17:49'),
+(8, 2, 3, 1, 0, '2025-10-26 07:10:26', '2025-11-09 07:17:49'),
+(9, 3, 3, 1, 0, '2025-10-26 07:10:30', '2025-11-09 07:17:49'),
+(10, 3, 4, 1, 0, '2025-10-26 07:11:18', '2025-11-09 07:17:49'),
+(11, 2, 4, 1, 0, '2025-10-26 07:11:22', '2025-11-09 07:17:49'),
+(12, 1, 4, 1, 0, '2025-10-26 07:11:26', '2025-11-09 07:17:49'),
+(13, 1, 7, 1, 0, '2025-10-26 14:14:10', '2025-11-09 07:17:49'),
+(14, 5, 2, 0, 1, '2025-11-08 09:54:39', '2025-11-09 07:17:49'),
+(20, 11, 2, 1, 0, '2025-11-08 10:10:58', '2025-11-09 07:17:49'),
+(21, 10, 2, 1, 0, '2025-11-08 10:11:08', '2025-11-09 07:17:49');
 
 -- --------------------------------------------------------
 
@@ -409,7 +461,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`user_id`, `role_id`, `status_user`, `name`, `email`, `password`, `created_at`, `updated_at`) VALUES
 (1, 1, 'active', 'Admin Utama', 'admin@gmail.com', '$2a$10$ghzwfho7MvLgg247iumqve7m.XZYZHSYeiVIigtB3ZHRufvF/9Elm', '2025-10-23 13:55:32', '2025-10-23 13:55:32'),
-(2, 3, 'active', 'Budi Santoso', 'budi@gmail.com', '$2a$10$4tSbPmmnpscN2Gfyse9GieU8aTPeQMrQC/EqxCSTG/urVFANwsMCq', '2025-10-23 13:56:42', '2025-10-26 07:08:52'),
+(2, 3, 'active', 'Budi Santoso', 'budi@gmail.com', '$2a$10$4tSbPmmnpscN2Gfyse9GieU8aTPeQMrQC/EqxCSTG/urVFANwsMCq', '2025-10-23 13:56:42', '2025-11-08 10:11:07'),
 (3, 3, 'active', 'Ani Lestari', 'ani@gmail.com', '$2a$10$c5pLKPfMoO2h/5mYVq/wieFfeseTHThLFz7W9F0j3EQi4SqOrmMUW', '2025-10-23 13:57:06', '2025-10-26 07:10:07'),
 (4, 2, 'active', 'Candra Wijaya', 'candra@gmail.com', '$2a$10$LcnkpHDgymYKSPI2Ri5qoetb2l4bRMrppSArtF/q6GORwTY7TmzYO', '2025-10-23 13:57:25', '2025-10-26 07:11:10'),
 (5, 2, 'active', 'Editor', 'editor@gmail.com', '$2a$10$FX8E3Pplm58noZ44FLGH.ePT5ecVcjZmypNRrY3rxtbVmVQSeFGc.', '2025-10-23 13:58:08', '2025-10-23 14:30:02'),
@@ -432,7 +484,6 @@ CREATE TABLE `user_bookmarks` (
 --
 
 INSERT INTO `user_bookmarks` (`user_id`, `menu_id`) VALUES
-(2, 1),
 (3, 1),
 (4, 1),
 (6, 1),
@@ -444,7 +495,9 @@ INSERT INTO `user_bookmarks` (`user_id`, `menu_id`) VALUES
 (4, 3),
 (6, 3),
 (2, 5),
-(2, 7);
+(2, 7),
+(2, 10),
+(2, 11);
 
 -- --------------------------------------------------------
 
@@ -584,19 +637,19 @@ ALTER TABLE `comments`
 -- AUTO_INCREMENT for table `log_activity`
 --
 ALTER TABLE `log_activity`
-  MODIFY `activity_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=127;
+  MODIFY `activity_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=171;
 
 --
 -- AUTO_INCREMENT for table `menus`
 --
 ALTER TABLE `menus`
-  MODIFY `menu_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `menu_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT for table `menu_votes`
 --
 ALTER TABLE `menu_votes`
-  MODIFY `vote_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `vote_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
