@@ -17,7 +17,7 @@ type Menu struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 
 	// --- Relasi ---
-	User     User       `gorm:"foreignKey:UserID;references:UserID" json:"user,omitempty"`
+	User     User       `gorm:"foreignKey:UserID;references:UserID" json:"User,omitempty"`
 	Comments []Comment  `gorm:"foreignKey:MenuID" json:"-"`
 	Votes    []MenuVote `gorm:"foreignKey:MenuID" json:"-"`
 	Tags     []*Tag     `gorm:"many2many:menu_tags;foreignKey:MenuID;joinForeignKey:menu_id;References:TagID;joinReferences:tag_id" json:"tags,omitempty"`

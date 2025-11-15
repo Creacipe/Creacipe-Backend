@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
 // GetDashboardStats mengambil statistik untuk dashboard editor/admin
 func GetDashboardStats(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
@@ -58,7 +59,18 @@ func GetDashboardStats(c *gin.Context) {
 // GetAllMenusForModeration menampilkan semua resep (semua status) untuk editor/admin.
 func GetAllMenusForModeration(c *gin.Context) {
 	var menus []models.Menu
-	if err := config.DB.Preload("User").Order("created_at desc").Find(&menus).Error; err != nil {
+	
+	// Ambil parameter status dari query string
+	status := c.Query("status")
+	
+	query := config.DB.Preload("User").Preload("User.Role")
+	
+	// Filter berdasarkan status jika ada
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	
+	if err := query.Order("created_at desc").Find(&menus).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data resep"})
 		return
 	}
@@ -68,7 +80,7 @@ func GetAllMenusForModeration(c *gin.Context) {
 // GetPendingMenus menampilkan resep yang menunggu persetujuan ('pending').
 func GetPendingMenus(c *gin.Context) {
 	var menus []models.Menu
-	if err := config.DB.Preload("User").Where("status = ?", "pending").Order("created_at asc").Find(&menus).Error; err != nil {
+	if err := config.DB.Preload("User").Preload("User.Role").Where("status = ?", "pending").Order("created_at asc").Find(&menus).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data resep pending"})
 		return
 	}
