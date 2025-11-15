@@ -9,6 +9,51 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+// GetDashboardStats mengambil statistik untuk dashboard editor/admin
+func GetDashboardStats(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
+
+	// Hitung resep pending
+	var pendingCount int64
+	config.DB.Model(&models.Menu{}).Where("status = ?", "pending").Count(&pendingCount)
+
+	// Hitung total resep approved
+	var approvedCount int64
+	config.DB.Model(&models.Menu{}).Where("status = ?", "approved").Count(&approvedCount)
+
+	// Hitung total resep rejected
+	var rejectedCount int64
+	config.DB.Model(&models.Menu{}).Where("status = ?", "rejected").Count(&rejectedCount)
+
+	// Hitung total pengguna (khusus admin)
+	var totalUsers int64
+	if user.Role.RoleName == "admin" {
+		config.DB.Model(&models.User{}).Count(&totalUsers)
+	}
+
+	// Hitung total kategori
+	var totalCategories int64
+	config.DB.Model(&models.Category{}).Count(&totalCategories)
+
+	// Hitung total tag
+	var totalTags int64
+	config.DB.Model(&models.Tag{}).Count(&totalTags)
+
+	stats := gin.H{
+		"pending_recipes":  pendingCount,
+		"approved_recipes": approvedCount,
+		"rejected_recipes": rejectedCount,
+		"total_categories": totalCategories,
+		"total_tags":       totalTags,
+	}
+
+	// Tambahkan data user untuk admin
+	if user.Role.RoleName == "admin" {
+		stats["total_users"] = totalUsers
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": stats})
+}
 
 // GetAllMenusForModeration menampilkan semua resep (semua status) untuk editor/admin.
 func GetAllMenusForModeration(c *gin.Context) {

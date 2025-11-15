@@ -73,12 +73,17 @@ func main() {
 			editorRoutes := auth.Group("/editor")
 			editorRoutes.Use(middlewares.AuthorizeRole("admin", "editor"))
 			{
+				// Dashboard Stats
+				editorRoutes.GET("/dashboard/stats", controllers.GetDashboardStats)
+
+				// manajement resep
 				editorRoutes.GET("/menus", controllers.GetAllMenusForModeration)
 				editorRoutes.GET("/menus/pending", controllers.GetPendingMenus)
 				editorRoutes.PATCH("/menus/:id/status", controllers.UpdateMenuStatus)
 				editorRoutes.POST("/tags", controllers.CreateTag)
         editorRoutes.PUT("/tags/:id", controllers.UpdateTag)
         editorRoutes.DELETE("/tags/:id", controllers.DeleteTag)
+				editorRoutes.DELETE("/menus/:id", controllers.DeleteMenu)
 
 				// --- manajemen kategori ---
         editorRoutes.POST("/categories", controllers.CreateCategory)
@@ -91,17 +96,21 @@ func main() {
 			adminRoutes := auth.Group("/admin")
 			adminRoutes.Use(middlewares.AuthorizeRole("admin"))
 			{
-				// --- TAMBAHKAN TIGA RUTE BARU DI SINI ---
+				// Dashboard Stats (Admin dapat akses semua stats termasuk user)
+				adminRoutes.GET("/dashboard/stats", controllers.GetDashboardStats)
+				// Manajemen User
 				adminRoutes.POST("/users", controllers.AdminCreateUser)
-				adminRoutes.PATCH("/users/:id/deactivate", controllers.DeactivateUser)
-				adminRoutes.PATCH("/users/:id/activate", controllers.ActivateUser)
-				// ------------------------------------------
-
-				// Rute yang sudah ada
 				adminRoutes.GET("/users", controllers.GetAllUsers)
+				adminRoutes.GET("/users/:id", controllers.GetUserByID)
 				adminRoutes.PUT("/users/:id", controllers.UpdateUser)
 				adminRoutes.PATCH("/users/:id/role", controllers.UpdateUserRole)
+				adminRoutes.PATCH("/users/:id/deactivate", controllers.DeactivateUser)
+				adminRoutes.PATCH("/users/:id/activate", controllers.ActivateUser)
 				adminRoutes.DELETE("/users/:id", controllers.DeleteUser)
+				// Log Aktivitas
+				adminRoutes.GET("/logs", controllers.GetActivityLogs)
+				// Roles
+				adminRoutes.GET("/roles", controllers.GetAllRoles)
 			}
 		}
 	}

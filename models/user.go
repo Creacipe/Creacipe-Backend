@@ -14,8 +14,8 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// --- Relasi ---
-	Role      Role 		    `gorm:"foreignKey:RoleID;references:RoleID" json:"role,omitempty"`
-	Profile   UserProfile `gorm:"foreignKey:UserID" json:"profile,omitempty"`
+	Role      Role 		    `gorm:"foreignKey:RoleID;references:RoleID" json:"Role"`
+	Profile   UserProfile `gorm:"foreignKey:UserID" json:"Profile"`
 	Menus     []Menu      `gorm:"foreignKey:UserID" json:"-"`
 	Comments  []Comment   `gorm:"foreignKey:UserID" json:"-"`
 	Votes     []MenuVote  `gorm:"foreignKey:UserID" json:"-"`

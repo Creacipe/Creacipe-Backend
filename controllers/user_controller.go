@@ -15,15 +15,22 @@ import (
 
 // AdminCreateUser membuat user baru dengan peran spesifik.
 func AdminCreateUser(c *gin.Context) {
-	var input models.AdminCreateUserInput
+	var input struct {
+		Name     string `json:"name" binding:"required"`
+		Email    string `json:"email" binding:"required,email"`
+		Password string `json:"password" binding:"required,min=6"`
+		RoleID   uint   `json:"role_id" binding:"required"`
+	}
+
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Validasi role exists
 	var role models.Role
-	if err := config.DB.Where("role_name = ?", input.RoleName).First(&role).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Nama peran tidak valid"})
+	if err := config.DB.First(&role, input.RoleID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Role tidak ditemukan"})
 		return
 	}
 
@@ -32,7 +39,7 @@ func AdminCreateUser(c *gin.Context) {
 		Name:       input.Name,
 		Email:      input.Email,
 		Password:   string(hashedPassword),
-		RoleID:     role.RoleID,
+		RoleID:     input.RoleID,
 		StatusUser: "active",
 	}
 
@@ -41,139 +48,75 @@ func AdminCreateUser(c *gin.Context) {
 		return
 	}
 
-	// --- TAMBAHAN: BUAT PROFIL KOSONG OTOMATIS ---
+	// Buat profil kosong otomatis
 	profile := models.UserProfile{UserID: user.UserID}
 	config.DB.Create(&profile)
-	// ---------------------------------------------
-	// --- 2. TAMBAHKAN LOG UNTUK PENAMBAHAN USER ---
 
+	// Log aktivitas
 	admin := c.MustGet("user").(models.User)
-	helpers.CreateLog(admin.UserID, "ADMIN_CREATE_USER", user.UserID, "users")
-	c.JSON(http.StatusCreated, gin.H{"data": user})
-}
+	helpers.CreateLog(admin.UserID, "CREATE_USER", user.UserID, "users")
 
+	// Reload user dengan relasi
+	config.DB.Preload("Role").First(&user, user.UserID)
 
-// GetAllUsers menampilkan semua pengguna, bisa difilter berdasarkan status.
-func GetAllUsers(c *gin.Context) {
-	var users []models.User
-	query := config.DB.Preload("Role")
-
-	status := c.Query("status")
-	if status == "inactive" {
-		query = query.Where("status_user = ?", "inactive")
-	} else if status == "all" {
-		// Tidak melakukan apa-apa, ambil semua status
-	} else {
-		// Defaultnya hanya ambil user yang aktif
-		query = query.Where("status_user = ?", "active")
-	}
-	
-	if err := query.Find(&users).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data pengguna"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"data": users})
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "User berhasil dibuat",
+		"data":    user,
+	})
 }
 
 
 
 // UpdateUser menangani perubahan data pengguna (nama/email) oleh admin.
 func UpdateUser(c *gin.Context) {
-	var user models.User // User yang akan diubah
-	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
-		return
-	}
-
-	var input models.AdminUpdateUserInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Ambil data admin yang melakukan aksi dari context
-	admin, _ := c.Get("user")
-	adminInfo := admin.(models.User)
-
-	if err := config.DB.Model(&user).Updates(input).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui data pengguna"})
-		return
-	}
-
-	// --- 2. TAMBAHKAN LOG ---
-	helpers.CreateLog(adminInfo.UserID, "ADMIN_UPDATE_USER", user.UserID, "users")
-	// -------------------------
-
-	c.JSON(http.StatusOK, gin.H{"data": user})
-}
-
-
-
-// UpdateUserRole berfungsi untuk mengubah peran seorang pengguna.
-func UpdateUserRole(c *gin.Context) {
-	var user models.User // User yang akan diubah perannya
-	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
-		return
-	}
-
-	var input models.UpdateUserRoleInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Ambil data admin yang melakukan aksi dari context
-	admin, _ := c.Get("user")
-	adminInfo := admin.(models.User)
-
-	var role models.Role
-	if err := config.DB.Where("role_name = ?", input.RoleName).First(&role).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Nama peran tidak valid"})
-		return
-	}
-
-	if err := config.DB.Model(&user).Update("role_id", role.RoleID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui peran pengguna"})
-		return
-	}
-
-	// --- 3. TAMBAHKAN LOG ---
-	helpers.CreateLog(adminInfo.UserID, "ADMIN_UPDATE_ROLE", user.UserID, "users")
-	// -------------------------
-
-	config.DB.Preload("Role").First(&user, user.UserID)
-	c.JSON(http.StatusOK, gin.H{"data": user})
-}
-
-// DeleteUser menangani penghapusan pengguna oleh admin.
-func DeleteUser(c *gin.Context) {
 	var user models.User
 	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
 		return
 	}
 
-	// Ambil data admin yang melakukan aksi dari context
-	admin, _ := c.Get("user")
-	adminInfo := admin.(models.User)
+	var input struct {
+		Name     string `json:"name"`
+		Email    string `json:"email" binding:"omitempty,email"`
+		Password string `json:"password" binding:"omitempty,min=6"`
+	}
 
-	// Simpan ID user yang akan dihapus untuk log
-	userIDtoLog := user.UserID
-
-	if err := config.DB.Delete(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus pengguna"})
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// --- 4. TAMBAHKAN LOG ---
-	helpers.CreateLog(adminInfo.UserID, "ADMIN_DELETE_USER", userIDtoLog, "users")
-	// -------------------------
+	// Update fields
+	if input.Name != "" {
+		user.Name = input.Name
+	}
+	if input.Email != "" {
+		user.Email = input.Email
+	}
+	if input.Password != "" {
+		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		user.Password = string(hashedPassword)
+	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil dihapus"})
+	if err := config.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui data pengguna"})
+		return
+	}
+
+	// Log aktivitas
+	admin := c.MustGet("user").(models.User)
+	helpers.CreateLog(admin.UserID, "UPDATE_USER", user.UserID, "users")
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User berhasil diperbarui",
+		"data":    user,
+	})
 }
 
+
+
 //--------------------------------------// USER PROFILE CONTROLLERS //--------------------------------------//
+
 // GetMyProfile menampilkan data lengkap dari pengguna yang sedang login.
 func GetMyProfile(c *gin.Context) {
 	userCtx, _ := c.Get("user")
@@ -212,6 +155,8 @@ func UpdateMyProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Profil berhasil diperbarui"})
 }
 
+//--------------------------------------// ADMIN USER MANAGEMENT //--------------------------------------//
+
 // --- FUNGSI BARU UNTUK AKTIF/NONAKTIF ---
 
 // DeactivateUser mengubah status user menjadi 'inactive'.
@@ -244,4 +189,124 @@ func ActivateUser(c *gin.Context) {
 	admin := c.MustGet("user").(models.User)
 	helpers.CreateLog(admin.UserID, "ADMIN_ACTIVATE_USER", user.UserID, "users")
 	c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil diaktifkan"})
+}
+
+// --- FUNGSI TAMBAHAN UNTUK DASHBOARD ADMIN ---
+
+// GetAllUsers mengambil semua pengguna dengan informasi lengkap
+func GetAllUsers(c *gin.Context) {
+	var users []models.User
+	
+	if err := config.DB.Preload("Role").Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data pengguna"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": users})
+}
+
+// GetUserByID mengambil detail satu pengguna
+func GetUserByID(c *gin.Context) {
+	var user models.User
+	
+	if err := config.DB.Preload("Role").Preload("UserProfile").First(&user, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": user})
+}
+
+// UpdateUserRole mengubah role user (Admin only)
+func UpdateUserRole(c *gin.Context) {
+	var user models.User
+	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+		return
+	}
+
+	var input struct {
+		RoleID uint `json:"role_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Role ID wajib diisi"})
+		return
+	}
+
+	// Validasi role exists
+	var role models.Role
+	if err := config.DB.First(&role, input.RoleID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Role tidak ditemukan"})
+		return
+	}
+
+	user.RoleID = input.RoleID
+
+	if err := config.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengubah role pengguna"})
+		return
+	}
+
+	admin := c.MustGet("user").(models.User)
+	helpers.CreateLog(admin.UserID, "UPDATE_USER_ROLE", user.UserID, "users")
+
+	// Reload user dengan role
+	config.DB.Preload("Role").First(&user, user.UserID)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Role pengguna berhasil diubah",
+		"data":    user,
+	})
+}
+
+// DeleteUser menghapus user (Admin only)
+func DeleteUser(c *gin.Context) {
+	var user models.User
+	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+		return
+	}
+
+	// Cek apakah user mencoba menghapus dirinya sendiri
+	currentUser := c.MustGet("user").(models.User)
+	if currentUser.UserID == user.UserID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tidak dapat menghapus akun sendiri"})
+		return
+	}
+
+	userIDtoLog := user.UserID
+
+	if err := config.DB.Delete(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus pengguna"})
+		return
+	}
+
+	helpers.CreateLog(currentUser.UserID, "DELETE_USER", userIDtoLog, "users")
+
+	c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil dihapus"})
+}
+
+// GetAllRoles mengambil semua role yang tersedia
+func GetAllRoles(c *gin.Context) {
+	var roles []models.Role
+	
+	if err := config.DB.Find(&roles).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data role"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": roles})
+}
+
+// GetActivityLogs mengambil log aktivitas sistem (Admin only)
+func GetActivityLogs(c *gin.Context) {
+	var logs []models.LogActivity
+	
+	if err := config.DB.Preload("User").Order("timestamp DESC").Limit(100).Find(&logs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil log aktivitas"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": logs})
 }
