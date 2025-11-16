@@ -6,7 +6,9 @@ import (
 	"creacipe-backend/helpers" // <-- 1. IMPORT HELPER
 	"creacipe-backend/models"
 	"net/http"
-
+	"fmt"
+	"path/filepath"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -134,21 +136,72 @@ func GetMyProfile(c *gin.Context) {
 // UpdateMyProfile memperbarui data profil pengguna yang sedang login.
 func UpdateMyProfile(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
-	var input models.UpdateProfileInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	
+	// Ambil data dari form
+	name := c.PostForm("name")
+	email := c.PostForm("email")
+	bio := c.PostForm("bio")
+	
+	// Debug: Print semua form values
+	fmt.Println("=== Form Data Received ===")
+	fmt.Printf("name: '%s'\n", name)
+	fmt.Printf("email: '%s'\n", email)
+	fmt.Printf("bio: '%s'\n", bio)
+	fmt.Println("========================")
+	
+	// Update nama dan email di tabel 'users' jika ada perubahan
+	updates := make(map[string]interface{})
+	if name != "" {
+		updates["name"] = name
+	}
+	if email != "" && email != user.Email {
+		// Cek apakah email sudah digunakan user lain
+		var existingUser models.User
+		if err := config.DB.Where("email = ? AND user_id != ?", email, user.UserID).First(&existingUser).Error; err == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah digunakan oleh pengguna lain"})
+			return
+		}
+		updates["email"] = email
 	}
 
-	// Update nama di tabel 'users'
-	config.DB.Model(&user).Update("name", input.Name)
+	if len(updates) > 0 {
+		config.DB.Model(&user).Updates(updates)
+	}
 
 	// Update atau buat data di tabel 'user_profiles'
 	var profile models.UserProfile
 	config.DB.FirstOrInit(&profile, models.UserProfile{UserID: user.UserID})
-	profile.Bio = input.Bio
-	profile.ProfilePictureURL = input.ProfilePictureURL
-	config.DB.Save(&profile)
+	
+	// Update bio - pastikan update meskipun kosong
+	profile.Bio = bio
+	
+	// Debug log
+	fmt.Printf("Updating profile for user %d: bio='%s'\n", user.UserID, bio)
+	
+	// Handle image upload
+	file, err := c.FormFile("image_file")
+	if err == nil {
+		// Buat nama file unik
+		filename := fmt.Sprintf("profile_%d_%d%s", user.UserID, time.Now().Unix(), filepath.Ext(file.Filename))
+		filePath := "assets/profiles/" + filename
+		
+		// Simpan file
+		if err := c.SaveUploadedFile(file, filePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan gambar profil"})
+			return
+		}
+		
+		// Update profile picture URL
+		profile.ProfilePictureURL = "/" + filePath
+	}
+	
+	if err := config.DB.Save(&profile).Error; err != nil {
+		fmt.Printf("Error saving profile: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan profil"})
+		return
+	}
+	
+	fmt.Printf("Profile saved successfully: bio='%s', picture='%s'\n", profile.Bio, profile.ProfilePictureURL)
 	
 	// Catat di log
 	helpers.CreateLog(user.UserID, "UPDATE_PROFILE", user.UserID, "users")

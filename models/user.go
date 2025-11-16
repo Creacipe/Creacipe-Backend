@@ -46,6 +46,7 @@ type UpdateUserRoleInput struct {
 // UpdateProfileInput mendefinisikan data JSON untuk memperbarui profil.
 type UpdateProfileInput struct {
 	Name              string `json:"name"`
+	Email             string `json:"email" binding:"omitempty,email"`
 	Bio               string `json:"bio"`
 	ProfilePictureURL string `json:"profile_picture_url"`
 }
