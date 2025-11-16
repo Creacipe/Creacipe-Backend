@@ -7,6 +7,7 @@ import (
 	"creacipe-backend/models"
 	"net/http"
 
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -303,9 +304,33 @@ func GetAllRoles(c *gin.Context) {
 func GetActivityLogs(c *gin.Context) {
 	var logs []models.LogActivity
 	
-	if err := config.DB.Preload("User").Order("timestamp DESC").Limit(100).Find(&logs).Error; err != nil {
+	// Preload User dan Role terlebih dahulu
+	if err := config.DB.
+		Preload("User.Role").
+		Preload("User").
+		Order("created_at DESC").
+		Find(&logs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil log aktivitas"})
 		return
+	}
+
+	// Preload Menu, TargetUser, Tag, dan Category secara conditional berdasarkan target_type
+	for i := range logs {
+		targetType := logs[i].TargetType
+		
+		if targetType == "menu" || targetType == "menus" {
+			// Preload Menu untuk menu-related actions
+			config.DB.Preload("Menu").First(&logs[i], logs[i].ActivityID)
+		} else if targetType == "user" || targetType == "users" {
+			// Preload TargetUser untuk user-related actions
+			config.DB.Preload("TargetUser.Role").Preload("TargetUser").First(&logs[i], logs[i].ActivityID)
+		} else if targetType == "tag" || targetType == "tags" {
+			// Preload Tag untuk tag-related actions
+			config.DB.Preload("Tag").First(&logs[i], logs[i].ActivityID)
+		} else if targetType == "category" || targetType == "categories" {
+			// Preload Category untuk category-related actions
+			config.DB.Preload("Category").First(&logs[i], logs[i].ActivityID)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": logs})
