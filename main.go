@@ -43,8 +43,6 @@ func main() {
 		api.GET("/menus/popular", controllers.GetPopularMenus)
 		api.GET("/menus/:id", controllers.GetMenuByID)
 		api.GET("/menus/:id/recommendations", controllers.GetRecommendations)
-		api.POST("/forgot-password", controllers.ForgotPassword)
-		api.POST("/reset-password", controllers.ResetPassword)
 		api.GET("/categories", controllers.GetAllCategories)
 		api.POST("/auth/refresh", controllers.RefreshToken)
 
@@ -68,6 +66,12 @@ func main() {
 			auth.GET("/me/menus", controllers.GetMyMenus)
 			auth.GET("/me/bookmarks", controllers.GetMyBookmarks)
 			auth.GET("/me/collection", controllers.GetMyCollection)
+
+			// Rute Reset Password & Email Change
+			auth.POST("/me/request-password-reset", controllers.RequestPasswordReset)
+			auth.POST("/me/verify-reset-password", controllers.VerifyAndResetPassword)
+			auth.POST("/me/request-email-change", controllers.RequestEmailChange)
+			auth.POST("/me/verify-email-change", controllers.VerifyAndChangeEmail)
 
 			// Rute Moderasi (Editor & Admin)
 			editorRoutes := auth.Group("/editor")

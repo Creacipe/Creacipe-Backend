@@ -2,15 +2,16 @@
 package controllers
 
 import (
-	"creacipe-backend/config" // Sesuaikan dengan nama modul Anda
+	"creacipe-backend/config"
 	"creacipe-backend/models"
-	"creacipe-backend/helpers" // Sesuaikan dengan nama modul Anda
+	"creacipe-backend/helpers" 
 	"net/http"
 	"os"
 	"time"
+	"fmt"
 
-	"crypto/rand"
-	"encoding/hex"
+	// "crypto/rand"
+	// "encoding/hex"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -61,11 +62,6 @@ func Register(c *gin.Context) {
 }
 
 
-
-// Login menangani logika autentikasi pengguna dan pembuatan token JWT.
-// Login menangani logika autentikasi dengan pengecekan status.
-// Login sekarang mengembalikan access_token dan refresh_token
-// --- FUNGSI LOGIN (DIPERBARUI) ---
 // Login sekarang mengembalikan access_token dan refresh_token
 func Login(c *gin.Context) {
 	var input models.LoginInput
@@ -173,59 +169,212 @@ func RefreshToken(c *gin.Context) {
 }
 
 //-------untuk reset password-------//
-// ForgotPassword membuat token reset.
-func ForgotPassword(c *gin.Context) {
-	var body struct {
-		Email string `json:"email" binding:"required,email"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil { /* ... handle error */ }
+// RequestPasswordReset mengirim kode verifikasi untuk reset password
+func RequestPasswordReset(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
 
-	var user models.User
-	if config.DB.Where("email = ?", body.Email).First(&user).Error != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "Jika email terdaftar, instruksi akan dikirim."})
+	var input struct {
+		CurrentPassword string `json:"current_password" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Password saat ini harus diisi"})
 		return
 	}
 
-	tokenBytes := make([]byte, 32)
-	rand.Read(tokenBytes)
-	resetToken := hex.EncodeToString(tokenBytes)
-
-	passwordReset := models.PasswordReset{
-		UserID:    user.UserID,
-		Token:     resetToken,
-		ExpiresAt: time.Now().Add(time.Hour * 1),
+	// Verifikasi password lama
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.CurrentPassword)); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Password saat ini tidak valid"})
+		return
 	}
-	config.DB.Create(&passwordReset)
 
-	// --- Di sini logika pengiriman email akan ditempatkan ---
-	log.Printf("TOKEN RESET UNTUK %s: %s", user.Email, resetToken)
-	helpers.CreateLog(user.UserID, "REQUEST_PASSWORD_RESET", user.UserID, "users")
+	// Generate kode verifikasi 6 digit
+	verificationCode := helpers.GenerateVerificationCode()
+	expiresAt := time.Now().Add(10 * time.Minute) // Berlaku 10 menit
+
+	// Hapus kode lama yang belum digunakan
+	config.DB.Where("user_id = ? AND is_used = false", user.UserID).Delete(&models.PasswordReset{})
+
+	// Simpan kode baru
+	passwordReset := models.PasswordReset{
+		UserID:           user.UserID,
+		VerificationCode: verificationCode,
+		ExpiresAt:        expiresAt,
+		IsUsed:           false,
+	}
+
+	if err := config.DB.Create(&passwordReset).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat kode verifikasi"})
+		return
+	}
 	
-	c.JSON(http.StatusOK, gin.H{"message": "Jika email terdaftar, instruksi akan dikirim."})
+	if err := helpers.SendVerificationEmail(user.Email, user.Name, verificationCode, "reset_password"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Gagal mengirim email verifikasi: %v", err)})
+		return
+	}
+	
+	helpers.CreateLog(user.UserID, "REQUEST_PASSWORD_RESET", user.UserID, "users")
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Kode verifikasi telah dikirim ke email Anda",
+		"expires_at": expiresAt,
+	})
 }
 
-// ResetPassword memvalidasi token dan mengubah password.
-func ResetPassword(c *gin.Context) {
-	var body struct {
-		Token    string `json:"token" binding:"required"`
-		Password string `json:"password" binding:"required,min=6"`
+// VerifyAndResetPassword memverifikasi kode dan reset password
+func VerifyAndResetPassword(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
+
+	var input struct {
+		VerificationCode string `json:"verification_code" binding:"required,len=6"`
+		NewPassword      string `json:"new_password" binding:"required,min=6"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil { /* ... handle error */ }
-	
-	var passwordReset models.PasswordReset
-	if config.DB.Where("token = ? AND expires_at > ?", body.Token, time.Now()).First(&passwordReset).Error != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Token tidak valid atau sudah kedaluwarsa"})
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	var user models.User
-	config.DB.First(&user, passwordReset.UserID)
-	if user.UserID == 0 { /* ... handle error */ }
+	// Cari kode verifikasi
+	var passwordReset models.PasswordReset
+	if err := config.DB.Where("user_id = ? AND verification_code = ? AND is_used = false", 
+		user.UserID, input.VerificationCode).First(&passwordReset).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Kode verifikasi tidak valid"})
+		return
+	}
 
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
-	config.DB.Model(&user).Update("password", string(hashedPassword))
-	config.DB.Delete(&passwordReset)
+	// Cek apakah kode sudah expired
+	if time.Now().After(passwordReset.ExpiresAt) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Kode verifikasi sudah kadaluarsa"})
+		return
+	}
 
-	helpers.CreateLog(user.UserID, "COMPLETE_PASSWORD_RESET", user.UserID, "users")
-	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil direset."})
+	// Hash password baru
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengenkripsi password"})
+		return
+	}
+
+	// Update password
+	if err := config.DB.Model(&user).Update("password", string(hashedPassword)).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengubah password"})
+		return
+	}
+
+	// Tandai kode sebagai sudah digunakan
+	config.DB.Model(&passwordReset).Update("is_used", true)
+
+	helpers.CreateLog(user.UserID, "PASSWORD_RESET_SUCCESS", user.UserID, "users")
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil diubah"})
+}
+
+// ========== EMAIL CHANGE WITH VERIFICATION ==========
+
+// RequestEmailChange mengirim kode verifikasi untuk ubah email
+func RequestEmailChange(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
+
+	var input struct {
+		NewEmail string `json:"new_email" binding:"required,email"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Cek apakah email sudah digunakan
+	var existingUser models.User
+	if err := config.DB.Where("email = ? AND user_id != ?", input.NewEmail, user.UserID).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah digunakan oleh pengguna lain"})
+		return
+	}
+
+	// Generate kode verifikasi
+	verificationCode := helpers.GenerateVerificationCode()
+	expiresAt := time.Now().Add(10 * time.Minute)
+
+	// Hapus kode lama yang belum digunakan
+	config.DB.Where("user_id = ? AND is_used = false", user.UserID).Delete(&models.EmailVerification{})
+
+	// Simpan kode baru
+	emailVerification := models.EmailVerification{
+		UserID:           user.UserID,
+		NewEmail:         input.NewEmail,
+		VerificationCode: verificationCode,
+		ExpiresAt:        expiresAt,
+		IsUsed:           false,
+	}
+
+	if err := config.DB.Create(&emailVerification).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat kode verifikasi"})
+		return
+	}
+
+	
+	if err := helpers.SendVerificationEmail(input.NewEmail, user.Name, verificationCode, "change_email"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Gagal mengirim email verifikasi: %v", err)})
+		return
+	}
+	
+	helpers.CreateLog(user.UserID, "REQUEST_EMAIL_CHANGE", user.UserID, "users")
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Kode verifikasi telah dikirim ke email baru Anda",
+		"new_email":  input.NewEmail,
+		"expires_at": expiresAt,
+	})
+}
+
+// VerifyAndChangeEmail memverifikasi kode dan ubah email
+func VerifyAndChangeEmail(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
+
+	var input struct {
+		VerificationCode string `json:"verification_code" binding:"required,len=6"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Cari kode verifikasi
+	var emailVerification models.EmailVerification
+	if err := config.DB.Where("user_id = ? AND verification_code = ? AND is_used = false", 
+		user.UserID, input.VerificationCode).First(&emailVerification).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Kode verifikasi tidak valid"})
+		return
+	}
+
+	// Cek apakah kode sudah expired
+	if time.Now().After(emailVerification.ExpiresAt) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Kode verifikasi sudah kadaluarsa"})
+		return
+	}
+
+	// Cek lagi apakah email masih available
+	var existingUser models.User
+	if err := config.DB.Where("email = ? AND user_id != ?", emailVerification.NewEmail, user.UserID).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah digunakan oleh pengguna lain"})
+		return
+	}
+
+	// Update email
+	if err := config.DB.Model(&user).Update("email", emailVerification.NewEmail).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengubah email"})
+		return
+	}
+
+	// Tandai kode sebagai sudah digunakan
+	config.DB.Model(&emailVerification).Update("is_used", true)
+
+	helpers.CreateLog(user.UserID, "EMAIL_CHANGE_SUCCESS", user.UserID, "users")
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Email berhasil diubah",
+		"new_email": emailVerification.NewEmail,
+	})
 }
