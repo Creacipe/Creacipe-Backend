@@ -378,3 +378,122 @@ func VerifyAndChangeEmail(c *gin.Context) {
 		"new_email": emailVerification.NewEmail,
 	})
 }
+
+// ========== FORGOT PASSWORD (PUBLIC - NO AUTH REQUIRED) ==========
+
+// ForgotPasswordRequest mengirim kode OTP ke email user (tanpa perlu login)
+func ForgotPasswordRequest(c *gin.Context) {
+	var input struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email harus diisi dengan format yang valid"})
+		return
+	}
+
+	// Cari user berdasarkan email
+	var user models.User
+	if err := config.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
+		// JANGAN beritahu user bahwa email tidak ditemukan (security)
+		// Kirim respons sukses agar attacker tidak tahu email mana yang terdaftar
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Jika email terdaftar, kode verifikasi akan dikirim ke email Anda",
+		})
+		return
+	}
+
+	// Generate kode verifikasi 6 digit
+	verificationCode := helpers.GenerateVerificationCode()
+	expiresAt := time.Now().Add(10 * time.Minute) // Berlaku 10 menit
+
+	// Hapus kode lama yang belum digunakan untuk user ini
+	config.DB.Where("user_id = ? AND is_used = false", user.UserID).Delete(&models.PasswordReset{})
+
+	// Simpan kode baru
+	passwordReset := models.PasswordReset{
+		UserID:           user.UserID,
+		VerificationCode: verificationCode,
+		ExpiresAt:        expiresAt,
+		IsUsed:           false,
+	}
+
+	if err := config.DB.Create(&passwordReset).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat kode verifikasi"})
+		return
+	}
+
+	// Kirim email
+	fmt.Printf("[INFO] [FORGOT PASSWORD] Mengirim kode verifikasi ke email: %s\n", user.Email)
+	fmt.Printf("[INFO] Kode verifikasi: %s\n", verificationCode)
+	
+	if err := helpers.SendVerificationEmail(user.Email, user.Name, verificationCode, "reset_password"); err != nil {
+		fmt.Printf("[ERROR] Gagal mengirim email: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengirim email verifikasi"})
+		return
+	}
+	
+	fmt.Printf("[SUCCESS] Email lupa password berhasil dikirim ke: %s\n", user.Email)
+
+	helpers.CreateLog(user.UserID, "FORGOT_PASSWORD_REQUEST", user.UserID, "users")
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Kode verifikasi telah dikirim ke email Anda. Berlaku 10 menit.",
+		"expires_at": expiresAt,
+	})
+}
+
+// ForgotPasswordVerify memverifikasi kode OTP dan reset password (tanpa perlu login)
+func ForgotPasswordVerify(c *gin.Context) {
+	var input struct {
+		Email            string `json:"email" binding:"required,email"`
+		VerificationCode string `json:"verification_code" binding:"required,len=6"`
+		NewPassword      string `json:"new_password" binding:"required,min=6"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Data tidak valid. Pastikan semua field diisi dengan benar."})
+		return
+	}
+
+	// Cari user berdasarkan email
+	var user models.User
+	if err := config.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email tidak terdaftar"})
+		return
+	}
+
+	// Cari kode verifikasi yang valid
+	var passwordReset models.PasswordReset
+	if err := config.DB.Where("user_id = ? AND verification_code = ? AND is_used = false", 
+		user.UserID, input.VerificationCode).First(&passwordReset).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Kode verifikasi tidak valid"})
+		return
+	}
+
+	// Cek apakah kode sudah expired
+	if time.Now().After(passwordReset.ExpiresAt) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Kode verifikasi sudah kadaluarsa. Silakan minta kode baru."})
+		return
+	}
+
+	// Hash password baru
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengenkripsi password"})
+		return
+	}
+
+	// Update password
+	if err := config.DB.Model(&user).Update("password", string(hashedPassword)).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengubah password"})
+		return
+	}
+
+	// Tandai kode sebagai sudah digunakan
+	config.DB.Model(&passwordReset).Update("is_used", true)
+
+	helpers.CreateLog(user.UserID, "FORGOT_PASSWORD_SUCCESS", user.UserID, "users")
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil direset. Silakan login dengan password baru Anda."})
+}

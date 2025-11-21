@@ -139,33 +139,12 @@ func UpdateMyProfile(c *gin.Context) {
 	
 	// Ambil data dari form
 	name := c.PostForm("name")
-	email := c.PostForm("email")
 	bio := c.PostForm("bio")
 	
-	// Debug: Print semua form values
-	fmt.Println("=== Form Data Received ===")
-	fmt.Printf("name: '%s'\n", name)
-	fmt.Printf("email: '%s'\n", email)
-	fmt.Printf("bio: '%s'\n", bio)
-	fmt.Println("========================")
-	
-	// Update nama dan email di tabel 'users' jika ada perubahan
-	updates := make(map[string]interface{})
+	// Update nama di tabel 'users' jika ada perubahan
+	// Note: Email TIDAK bisa diubah di sini, gunakan endpoint change-email
 	if name != "" {
-		updates["name"] = name
-	}
-	if email != "" && email != user.Email {
-		// Cek apakah email sudah digunakan user lain
-		var existingUser models.User
-		if err := config.DB.Where("email = ? AND user_id != ?", email, user.UserID).First(&existingUser).Error; err == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah digunakan oleh pengguna lain"})
-			return
-		}
-		updates["email"] = email
-	}
-
-	if len(updates) > 0 {
-		config.DB.Model(&user).Updates(updates)
+		config.DB.Model(&user).Update("name", name)
 	}
 
 	// Update atau buat data di tabel 'user_profiles'

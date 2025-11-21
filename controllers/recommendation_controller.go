@@ -72,7 +72,7 @@ func GetRecommendations(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memproses hasil rekomendasi (judul)"})
 		return
 	}
-	// log.Printf("[DEBUG] Judul rekomendasi diterima dari Python: %v", recommendedTitles) // Log 7
+	log.Printf("[DEBUG] Judul rekomendasi diterima dari Python: %v", recommendedTitles) // Log 7
 
 	// 6. Ambil detail resep lengkap dari database berdasarkan JUDUL yang direkomendasikan.
 	// 6. Ambil detail resep lengkap dari database berdasarkan JUDUL yang direkomendasikan dengan statistik.

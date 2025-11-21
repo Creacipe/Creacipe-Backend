@@ -38,6 +38,8 @@ func main() {
 		api.POST("/setup/first-admin", controllers.SetupFirstAdmin)
 		api.POST("/register", controllers.Register)
 		api.POST("/login", controllers.Login)
+		api.POST("/forgot-password", controllers.ForgotPasswordRequest)
+		api.POST("/forgot-password/verify", controllers.ForgotPasswordVerify)
 		api.GET("/tags", controllers.GetAllTags)
 		api.GET("/menus", controllers.GetAllMenus)
 		api.GET("/menus/popular", controllers.GetPopularMenus)
