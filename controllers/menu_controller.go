@@ -96,7 +96,35 @@ func GetAllMenus(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": menus})
+
+	// Tambahkan stats untuk setiap menu
+	type MenuWithStats struct {
+		models.Menu
+		TotalLikes     int `json:"total_likes"`
+		TotalDislikes  int `json:"total_dislikes"`
+		TotalBookmarks int `json:"total_bookmarks"`
+	}
+
+	var results []MenuWithStats
+	for _, menu := range menus {
+		var totalLikes, totalDislikes, totalBookmarks int64
+
+		// Get likes and dislikes count
+		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&totalLikes)
+		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&totalDislikes)
+
+		// Get bookmarks count
+		config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&totalBookmarks)
+
+		results = append(results, MenuWithStats{
+			Menu:           menu,
+			TotalLikes:     int(totalLikes),
+			TotalDislikes:  int(totalDislikes),
+			TotalBookmarks: int(totalBookmarks),
+		})
+	}
+	
+	c.JSON(http.StatusOK, gin.H{"data": results})
 }
 
 // GetMenuByID mengambil detail satu resep berdasarkan ID (jika sudah disetujui).

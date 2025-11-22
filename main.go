@@ -126,6 +126,17 @@ func main() {
 				adminRoutes.DELETE("/users/:id", controllers.DeleteUser)
 				// Log Aktivitas
 				adminRoutes.GET("/logs", controllers.GetActivityLogs)
+
+				// Reporting
+				reportingRoutes := adminRoutes.Group("/reporting")
+				{
+					reportingRoutes.GET("/recipe-stats", controllers.GetRecipeStats)
+					reportingRoutes.GET("/growth-stats", controllers.GetGrowthStats)
+					reportingRoutes.GET("/top-tags", controllers.GetTopTags)
+					reportingRoutes.GET("/activity-log-stats", controllers.GetActivityLogStats)
+					reportingRoutes.GET("/top-liked-recipes", controllers.GetTopLikedRecipes)
+					reportingRoutes.GET("/top-bookmarked-recipes", controllers.GetTopBookmarkedRecipes)
+				}
 				// Roles
 				adminRoutes.GET("/roles", controllers.GetAllRoles)
 			}
