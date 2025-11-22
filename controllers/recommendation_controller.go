@@ -18,7 +18,6 @@ import (
 func GetRecommendations(c *gin.Context) {
 	// 1. Ambil menu_id dari URL.
 	menuID := c.Param("id")
-	// log.Printf("[DEBUG] Menerima permintaan rekomendasi untuk menu_id: %s", menuID) // Log 1
 
 	// 2. Ambil title dari database berdasarkan menu_id.
 	var menu models.Menu
@@ -27,7 +26,7 @@ func GetRecommendations(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan di database"})
 		return
 	}
-	title := menu.Title
+	title := menu.Title // GORM akan mengisi field struct dengan PascalCase
 	// log.Printf("[DEBUG] Judul ditemukan di DB: '%s'", title)
 	if title == "" {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Judul resep kosong"})
@@ -72,9 +71,8 @@ func GetRecommendations(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memproses hasil rekomendasi (judul)"})
 		return
 	}
-	log.Printf("[DEBUG] Judul rekomendasi diterima dari Python: %v", recommendedTitles) // Log 7
+	// log.Printf("[DEBUG] Judul rekomendasi diterima dari Python: %v", recommendedTitles) // Log 7
 
-	// 6. Ambil detail resep lengkap dari database berdasarkan JUDUL yang direkomendasikan.
 	// 6. Ambil detail resep lengkap dari database berdasarkan JUDUL yang direkomendasikan dengan statistik.
 	type MenuWithStats struct {
 		models.Menu
@@ -85,12 +83,21 @@ func GetRecommendations(c *gin.Context) {
 	
 	var recommendedMenus []MenuWithStats
 	if len(recommendedTitles) > 0 {
-		// log.Printf("[DEBUG] Mencari menu di DB dengan judul: %v", recommendedTitles) // Log 8
-		// Convert semua recommendedTitles ke lowercase untuk matching
+		// log.Printf("[DEBUG] Mencari menu di DB dengan %d judul", len(recommendedTitles))
+		
 		lowercaseTitles := make([]string, len(recommendedTitles))
 		for i, title := range recommendedTitles {
-			lowercaseTitles[i] = strings.ToLower(title)
+			lowercaseTitles[i] = strings.ToLower(strings.TrimSpace(title))
 		}
+		
+		// // Debug: print beberapa title untuk cek
+		// if len(lowercaseTitles) > 0 {
+		// 	log.Printf("[DEBUG] Sample lowercaseTitles[0]: '%s'", lowercaseTitles[0])
+		// 	if len(lowercaseTitles) > 1 {
+		// 		log.Printf("[DEBUG] Sample lowercaseTitles[1]: '%s'", lowercaseTitles[1])
+		// 	}
+		// }
+		
 		// Query dengan statistik vote dan bookmark
 		query := `
 			SELECT 
@@ -115,12 +122,30 @@ func GetRecommendations(c *gin.Context) {
 		`
 		
 		if err := config.DB.Raw(query, lowercaseTitles).Scan(&recommendedMenus).Error; err != nil {
-			// log.Printf("[ERROR] Gagal mengambil detail menu rekomendasi: %v", err) // Log 9
 			log.Printf("Error fetching recommended menus by title: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil detail resep dari judul rekomendasi"})
 			return
 		}
-		log.Printf("[DEBUG] Menu rekomendasi ditemukan di DB: %d", len(recommendedMenus)) // Log 10
+		// log.Printf("[DEBUG] Menu rekomendasi ditemukan di DB: %d dari %d judul", len(recommendedMenus), len(lowercaseTitles))
+		
+		// // Debug: Cek title yang tidak match
+		// if len(recommendedMenus) < len(lowercaseTitles) {
+		// 	foundTitles := make(map[string]bool)
+		// 	for _, menu := range recommendedMenus {
+		// 		foundTitles[strings.ToLower(menu.Title)] = true
+		// 	}
+			
+		// 	notFound := []string{}
+		// 	for _, title := range lowercaseTitles[:10] { // Check first 10
+		// 		if !foundTitles[title] {
+		// 			notFound = append(notFound, title)
+		// 		}
+		// 	}
+			
+		// 	if len(notFound) > 0 {
+		// 		log.Printf("[DEBUG] Sample titles NOT found in DB: %v", notFound[:min(5, len(notFound))])
+		// 	}
+		// }
 	} else {
 		log.Println("Python service returned empty recommendation list.")
 	}
@@ -204,13 +229,68 @@ func GetPersonalRecommendations(c *gin.Context) {
 		return
 	}
 
-	// 7. Ambil detail resep lengkap dari database berdasarkan JUDUL yang direkomendasikan.
-	var recommendedMenus []models.Menu
+	// 7. Ambil detail resep lengkap dari database berdasarkan JUDUL yang direkomendasikan dengan statistik.
+	type MenuWithStats struct {
+		models.Menu
+		TotalLikes     int `json:"total_likes"`
+		TotalDislikes  int `json:"total_dislikes"`
+		TotalBookmarks int `json:"total_bookmarks"`
+	}
+	
+	var recommendedMenus []MenuWithStats
 	if len(recommendedTitles) > 0 {
-		if err := config.DB.Preload("User").Where("LOWER(title) IN ?", recommendedTitles).Find(&recommendedMenus).Error; err != nil {
-			log.Printf("Error fetching recommended menus by title: %v", err)
+		// Convert semua recommendedTitles ke lowercase untuk matching
+		lowercaseTitles := make([]string, len(recommendedTitles))
+		for i, title := range recommendedTitles {
+			lowercaseTitles[i] = strings.ToLower(strings.TrimSpace(title))
+		}
+		
+		// Query dengan statistik vote dan bookmark
+		query := `
+			SELECT 
+				m.menu_id,
+				m.user_id,
+				m.title,
+				m.description,
+				m.ingredients,
+				m.instructions,
+				m.image_url,
+				m.status,
+				m.created_at,
+				m.updated_at,
+				COALESCE(SUM(mv.likes_count), 0) as total_likes,
+				COALESCE(SUM(mv.dislikes_count), 0) as total_dislikes,
+				(SELECT COUNT(*) FROM user_bookmarks WHERE menu_id = m.menu_id) as total_bookmarks
+			FROM menus m
+			LEFT JOIN menu_votes mv ON m.menu_id = mv.menu_id
+			WHERE LOWER(m.title) IN ? AND m.status = 'approved'
+			GROUP BY m.menu_id, m.user_id, m.title, m.description, m.ingredients, m.instructions,
+			         m.image_url, m.status, m.created_at, m.updated_at
+		`
+		
+		if err := config.DB.Raw(query, lowercaseTitles).Scan(&recommendedMenus).Error; err != nil {
+			log.Printf("Error fetching recommended menus by title with stats: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil detail resep dari judul rekomendasi"})
 			return
+		}
+		
+		// Preload User untuk setiap menu
+		menuIDs := make([]uint, len(recommendedMenus))
+		for i, menu := range recommendedMenus {
+			menuIDs[i] = menu.MenuID
+		}
+		
+		var users []models.User
+		config.DB.Where("user_id IN (SELECT user_id FROM menus WHERE menu_id IN ?)", menuIDs).Find(&users)
+		userMap := make(map[uint]models.User)
+		for _, u := range users {
+			userMap[u.UserID] = u
+		}
+		
+		for i := range recommendedMenus {
+			if user, ok := userMap[recommendedMenus[i].UserID]; ok {
+				recommendedMenus[i].User = user
+			}
 		}
 	} else {
 		log.Printf("Python service returned empty recommendation list for user %d", user.UserID)
