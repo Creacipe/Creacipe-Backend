@@ -17,11 +17,13 @@ type Comment struct {
 }
 
 type CommentWithUser struct {
-		CommentID   uint      `json:"comment_id"`
-		MenuID      uint      `json:"menu_id"`
-		UserID      uint      `json:"user_id"`
-		UserName    string    `json:"user_name"`
-		UserAvatar  string    `json:"user_avatar"`
-		CommentText string    `json:"comment_text"`
-		CreatedAt   string    `json:"created_at"`
+		CommentID   uint              `json:"comment_id"`
+		MenuID      uint              `json:"menu_id"`
+		UserID      uint              `json:"user_id"`
+		ParentID    *uint             `json:"parent_id"`
+		UserName    string            `json:"user_name"`
+		UserAvatar  string            `json:"user_avatar"`
+		CommentText string            `json:"comment_text"`
+		CreatedAt   string            `json:"created_at"`
+		Replies     []CommentWithUser `json:"replies"`
 	}
