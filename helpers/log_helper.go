@@ -17,3 +17,18 @@ func CreateLog(userID uint, action string, targetID uint, targetType string) {
 	}
 	config.DB.Create(&activity)
 }
+
+// CreateNotification membuat notifikasi untuk user
+func CreateNotification(userID uint, title string, message string, notifType string, relatedID *uint, relatedType string) {
+	notification := models.Notification{
+		UserID:      userID,
+		Title:       title,
+		Message:     message,
+		Type:        notifType,
+		IsRead:      false,
+		RelatedID:   relatedID,
+		RelatedType: relatedType,
+		CreatedAt:   time.Now(),
+	}
+	config.DB.Create(&notification)
+}

@@ -75,6 +75,17 @@ func main() {
 			auth.POST("/me/request-email-change", controllers.RequestEmailChange)
 			auth.POST("/me/verify-email-change", controllers.VerifyAndChangeEmail)
 
+			// Notifications
+			auth.GET("/me/notifications", controllers.GetMyNotifications)
+			auth.GET("/me/notifications/unread-count", controllers.GetUnreadNotificationCount)
+			auth.PATCH("/me/notifications/:id/read", controllers.MarkNotificationAsRead)
+			auth.PATCH("/me/notifications/mark-all-read", controllers.MarkAllNotificationsAsRead)
+
+			// Comments
+			auth.POST("/menus/:id/comments", controllers.CreateComment)
+			auth.GET("/menus/:id/comments", controllers.GetCommentsByMenu)
+			auth.DELETE("/comments/:id", controllers.DeleteComment)
+
 			// Rute Moderasi (Editor & Admin)
 			editorRoutes := auth.Group("/editor")
 			editorRoutes.Use(middlewares.AuthorizeRole("admin", "editor"))

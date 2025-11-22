@@ -124,6 +124,31 @@ func UpdateMenuStatus(c *gin.Context) {
 	}
 	helpers.CreateLog(moderatorInfo.UserID, actionLog, menu.MenuID, "menus")
 	// ---------------------------------------------
+	// --- 3. BUAT NOTIFIKASI UNTUK PEMILIK RESEP ---
+	if input.Status == "approved" {
+		helpers.CreateNotification(
+			menu.UserID,
+			"Resep Disetujui 🎉",
+			"Resep \""+menu.Title+"\" telah disetujui dan dipublikasikan!",
+			"success",
+			&menu.MenuID,
+			"menu",
+		)
+	} else if input.Status == "rejected" {
+		reason := input.RejectionReason
+		if reason == "" {
+			reason = "Tidak ada alasan yang diberikan"
+		}
+		helpers.CreateNotification(
+			menu.UserID,
+			"Resep Ditolak",
+			"Resep \""+menu.Title+"\" ditolak. Alasan: "+reason,
+			"danger",
+			&menu.MenuID,
+			"menu",
+		)
+	}
+	// -----------------------------------------------
 	
 	c.JSON(http.StatusOK, gin.H{"data": menu})
 }

@@ -102,13 +102,38 @@ func GetAllMenus(c *gin.Context) {
 // GetMenuByID mengambil detail satu resep berdasarkan ID (jika sudah disetujui).
 func GetMenuByID(c *gin.Context) {
 	var menu models.Menu
+	
 	// Ambil menu tanpa filter status dulu, dengan preload Tags
 	if err := config.DB.Preload("User").Preload("Tags").First(&menu, c.Param("id")).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan"})
 		return
 	}
+	
+	// Hitung total likes, dislikes, dan bookmarks (sama seperti GetPopularMenus)
+	var totalLikes, totalDislikes int64
+	config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&totalLikes)
+	config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&totalDislikes)
+	
+	var totalBookmarks int64
+	config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&totalBookmarks)
+	
+	// Buat response dengan count
+	type MenuDetailResult struct {
+		models.Menu
+		TotalLikes     int `json:"total_likes"`
+		TotalDislikes  int `json:"total_dislikes"`
+		TotalBookmarks int `json:"total_bookmarks"`
+	}
+	
+	result := MenuDetailResult{
+		Menu:           menu,
+		TotalLikes:     int(totalLikes),
+		TotalDislikes:  int(totalDislikes),
+		TotalBookmarks: int(totalBookmarks),
+	}
+	
 	// Kembalikan data menu (frontend yang akan handle logic approved/ownership)
-	c.JSON(http.StatusOK, gin.H{"data": menu})
+	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
 // UpdateMenu menangani pembaruan data resep oleh pemiliknya atau moderator.
