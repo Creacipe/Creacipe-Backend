@@ -66,9 +66,16 @@ func Register(c *gin.Context) {
 func Login(c *gin.Context) {
 	var input models.LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Input tidak valid"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Mohon lengkapi data login dan captcha"})
 		return
 	}
+	// --- 1. VALIDASI RECAPTCHA (TAMBAHAN BARU) ---
+	// Panggil helper yang baru kita buat
+	if err := helpers.VerifyRecaptcha(input.RecaptchaToken); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Verifikasi Captcha Gagal: Anda terdeteksi sebagai robot atau token kadaluwarsa."})
+		return
+	}
+	// ---------------------------------------------
 
 	var user models.User
     // Pastikan Preload("Role") ada di sini

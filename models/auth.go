@@ -12,4 +12,5 @@ type RegisterInput struct {
 type LoginInput struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
+	RecaptchaToken string `json:"recaptcha_token" binding:"required"`
 }
