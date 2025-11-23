@@ -19,32 +19,6 @@ type EmailConfig struct {
 	FromName     string
 }
 
-// DefaultEmailConfig adalah konfigurasi email default
-// 
-// SETUP BREVO (RECOMMENDED - GRATIS 300 EMAIL/HARI SELAMANYA):
-// 1. Daftar: https://app.brevo.com/account/register
-// 2. Verifikasi email Anda
-// 3. Login ke dashboard Brevo
-// 4. Menu: Settings → SMTP & API → SMTP
-// 5. Klik "Generate a new SMTP key" atau "Create a new SMTP key"
-// 6. Copy SMTP key yang muncul (format: xsmtpsib-xxxxxxxxxxxxx)
-// 7. Paste ke SMTPPassword di bawah
-// 8. SMTPUsername = email yang digunakan untuk login Brevo
-//
-// KEUNGGULAN BREVO:
-// ✅ 300 email/hari (9000 email/bulan) - GRATIS SELAMANYA
-// ✅ Dashboard analytics untuk tracking email
-// ✅ Support custom domain (bisa pakai noreply@yourdomain.com)
-// ✅ Reliable untuk production
-// ✅ Tidak perlu kartu kredit
-//
-// ALTERNATIF GRATIS LAINNYA:
-// - Gmail App Password (untuk development/testing)
-// - SMTP2GO (1000 email/bulan gratis)
-// - Resend (3000 email/bulan gratis)
-// - Mailgun (1000 email/bulan gratis setelah trial)
-//
-// TODO: Pindahkan ke environment variables untuk production
 var DefaultEmailConfig = EmailConfig{
 	SMTPHost:     "smtp-relay.brevo.com",              // SMTP Brevo
 	SMTPPort:     587,                                 // Port TLS
