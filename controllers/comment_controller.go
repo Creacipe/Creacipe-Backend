@@ -179,27 +179,28 @@ func GetCommentsByMenu(c *gin.Context) {
 	})
 }
 
-// DeleteComment - User hapus komentar sendiri
+// DeleteComment
 func DeleteComment(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	commentID, _ := strconv.Atoi(c.Param("id"))
 
 	var comment models.Comment
-	if err := config.DB.First(&comment, commentID).Error; err != nil {
-	var comment models.Comment
+
 	if err := config.DB.First(&comment, commentID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Komentar tidak ditemukan"})
 		return
 	}
 
-	// Cek apakah user adalah pemilik comment
 	if comment.UserID != user.UserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Anda tidak memiliki akses untuk menghapus komentar ini"})
 		return
 	}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus komentar"})
+
+	if err := config.DB.Delete(&comment).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus komentar dari database"})
 		return
 	}
 
+	// 4. Berikan respon sukses
 	c.JSON(http.StatusOK, gin.H{"message": "Komentar berhasil dihapus"})
 }
