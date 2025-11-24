@@ -14,42 +14,71 @@ func CreateComment(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	menuID := c.Param("id")
 
-	// Validasi: resep harus ada
+	// 1. Validasi: Resep harus ada
 	var menu models.Menu
 	if err := config.DB.First(&menu, menuID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan"})
 		return
 	}
 
-	// Bind input
+	// 2. Bind input JSON
 	var input struct {
 		CommentText string `json:"comment_text" binding:"required"`
-		ParentID    *uint  `json:"parent_id"` // Optional, untuk reply
+		ParentID    *uint  `json:"parent_id"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Komentar tidak boleh kosong"})
 		return
 	}
 
-	// Jika ini adalah reply, validasi parent comment exists
+	// Variabel penampung logika
+	var finalParentID *uint     
+	var notificationUserID uint 
+
+	// 3. Logika Penentuan Parent & Notifikasi
 	if input.ParentID != nil {
-		var parentComment models.Comment
-		if err := config.DB.First(&parentComment, *input.ParentID).Error; err != nil {
+		// --- KASUS REPLY (BALASAN) ---
+		var targetComment models.Comment
+		
+		// Cari komentar yang sedang dibalas
+		if err := config.DB.First(&targetComment, *input.ParentID).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Komentar yang direply tidak ditemukan"})
 			return
 		}
-		// Pastikan parent comment adalah untuk menu yang sama
-		if parentComment.MenuID != menu.MenuID {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Komentar tidak valid"})
+
+		// Validasi: Pastikan komentar target ada di menu yang sama
+		if targetComment.MenuID != menu.MenuID {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Komentar tidak valid untuk resep ini"})
 			return
+		}
+		// A. Tentukan Penerima Notifikasi
+		notificationUserID = targetComment.UserID
+
+		// B. Tentukan Struktur Database (Flattening):
+		// Jika komentar yang dibalas SUDAH punya parent (artinya dia adalah reply),
+		// maka komentar baru kita harus nempel ke Parent-nya dia (Root).
+		if targetComment.ParentID != nil {
+			finalParentID = targetComment.ParentID
+		} else {
+			// Jika komentar yang dibalas adalah Root (ParentID nil),
+			// maka kita nempel langsung ke dia.
+			finalParentID = input.ParentID
+		}
+
+	} else {
+		// --- KASUS KOMENTAR BARU (ROOT) ---
+		finalParentID = nil
+		// Notifikasi dikirim ke Pemilik Resep
+		if menu.UserID != user.UserID {
+			notificationUserID = menu.UserID
 		}
 	}
 
-	// Buat comment
+	// 4. Simpan Komentar ke Database
 	comment := models.Comment{
 		MenuID:      menu.MenuID,
 		UserID:      user.UserID,
-		ParentID:    input.ParentID,
+		ParentID:    finalParentID, // Gunakan ID yang sudah diluruskan logic-nya
 		CommentText: input.CommentText,
 	}
 
@@ -58,39 +87,24 @@ func CreateComment(c *gin.Context) {
 		return
 	}
 
-	// Auto-create notification
-	var notificationUserID uint
-	var notificationMessage string
-	
-	if input.ParentID != nil {
-		// Jika reply, notif ke pemilik comment parent
-		var parentComment models.Comment
-		config.DB.First(&parentComment, *input.ParentID)
-		notificationUserID = parentComment.UserID
-		notificationMessage = user.Name + " membalas komentar Anda: \"" + input.CommentText + "\""
-		
-		// Jangan buat notif jika reply ke diri sendiri
-		if notificationUserID != user.UserID {
-			notification := models.Notification{
-				UserID:      notificationUserID,
-				Title:       "Balasan Baru",
-				Message:     notificationMessage,
-				Type:        "info",
-				IsRead:      false,
-				RelatedID:   &menu.MenuID,
-				RelatedType: "menu",
-			}
-			config.DB.Create(&notification)
+	// 5. Kirim Notifikasi (Jika perlu)
+	// Hanya kirim jika penerima bukan diri sendiri
+	if notificationUserID != 0 && notificationUserID != user.UserID {
+		var notifMessage string
+		var notifTitle string
+
+		if input.ParentID != nil {
+			notifTitle = "Balasan Baru"
+			notifMessage = user.Name + " membalas komentar Anda: \"" + input.CommentText + "\""
+		} else {
+			notifTitle = "Komentar Baru"
+			notifMessage = user.Name + " berkomentar di resep Anda: \"" + input.CommentText + "\""
 		}
-	} else if menu.UserID != user.UserID {
-		// Jika comment biasa DAN bukan pemilik resep, notif ke pemilik resep
-		notificationUserID = menu.UserID
-		notificationMessage = user.Name + " berkomentar di resep Anda: \"" + input.CommentText + "\""
-		
+
 		notification := models.Notification{
 			UserID:      notificationUserID,
-			Title:       "Komentar Baru",
-			Message:     notificationMessage,
+			Title:       notifTitle,
+			Message:     notifMessage,
 			Type:        "info",
 			IsRead:      false,
 			RelatedID:   &menu.MenuID,
