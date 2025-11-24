@@ -6,6 +6,7 @@ type RegisterInput struct {
 	Name     string `json:"name" bson:"name" binding:"required"`
 	Email    string `json:"email" bson:"email" binding:"required,email"`
 	Password string `json:"password" bson:"password" binding:"required,min=6"`
+	RecaptchaToken string `json:"recaptcha_token" binding:"required"`
 }
 
 // LoginInput mendefinisikan data JSON yang dibutuhkan untuk login.

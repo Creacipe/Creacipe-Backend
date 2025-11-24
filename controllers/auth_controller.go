@@ -23,9 +23,15 @@ import (
 func Register(c *gin.Context) {
 	var input models.RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Mohon lengkapi data pendaftaran dan captcha"})
 		return
 	}
+	// --- 1. VALIDASI RECAPTCHA
+	if err := helpers.VerifyRecaptcha(input.RecaptchaToken); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Verifikasi Captcha Gagal: Anda terdeteksi sebagai robot atau token kadaluwarsa."})
+		return
+	}
+	// ---------------------------------------------
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
