@@ -16,6 +16,7 @@ type User struct {
 	// --- Relasi ---
 	Role      Role 		    `gorm:"foreignKey:RoleID;references:RoleID" json:"Role"`
 	Profile   UserProfile `gorm:"foreignKey:UserID" json:"Profile"`
+	UserProfile UserProfile `gorm:"foreignKey:UserID" json:"-"` //alias untuk code coverage
 	Menus     []Menu      `gorm:"foreignKey:UserID" json:"-"`
 	Comments  []Comment   `gorm:"foreignKey:UserID" json:"-"`
 	Votes     []MenuVote  `gorm:"foreignKey:UserID" json:"-"`
