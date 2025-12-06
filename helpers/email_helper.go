@@ -56,6 +56,11 @@ func GenerateVerificationCode() string {
 func SendVerificationEmail(toEmail, toName, verificationCode, purpose string) error {
 	config := GetEmailConfig()
 
+	// BYPASS untuk testing - jika SMTP host adalah "smtp.test.com", skip sending email
+	if config.SMTPHost == "smtp.test.com" {
+		return nil
+	}
+
 	m := gomail.NewMessage()
 	m.SetHeader("From", fmt.Sprintf("%s <%s>", config.FromName, config.FromEmail))
 	m.SetHeader("To", toEmail)
