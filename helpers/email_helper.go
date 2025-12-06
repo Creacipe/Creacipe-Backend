@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"os" // <--- Import ini WAJIB ada untuk membaca .env
 	"time"
 
 	"gopkg.in/gomail.v2"
@@ -19,13 +20,14 @@ type EmailConfig struct {
 	FromName     string
 }
 
+// Konfigurasi tetap disini, KECUALI Password yang kita kosongkan/isi dummy
 var DefaultEmailConfig = EmailConfig{
-	SMTPHost:     "smtp-relay.brevo.com",              // SMTP Brevo
-	SMTPPort:     587,                                 // Port TLS
-	SMTPUsername: "9bbc43001@smtp-brevo.com",       // Email login Brevo Anda
-	SMTPPassword: "xsmtpsib-d4817aa3809f71457a121b456db7cd23c9c00f09ac5b3288b20240dc3362c8d6-1sBqGHRSblPJ1ZII",           // SMTP Key dari Brevo dashboard
-	FromEmail:    "stoksolo01@gmail.com",           // Email pengirim (bisa custom atau pakai email Brevo)
-	FromName:     "Creacipe",                         // Nama pengirim yang muncul di email
+	SMTPHost:     "smtp-relay.brevo.com",
+	SMTPPort:     587,
+	SMTPUsername: "9bbc43001@smtp-brevo.com",
+	SMTPPassword: "", // <--- Dikosongkan disini, nanti diisi otomatis dari .env
+	FromEmail:    "stoksolo01@gmail.com",
+	FromName:     "Creacipe",
 }
 
 // GenerateVerificationCode menghasilkan kode verifikasi 6 digit
@@ -41,14 +43,25 @@ func GenerateVerificationCode() string {
 
 // SendVerificationEmail mengirim email verifikasi
 func SendVerificationEmail(toEmail, toName, verificationCode, purpose string) error {
+	// Salin konfigurasi default
 	config := DefaultEmailConfig
+
+	// --- PERUBAHAN DISINI ---
+	// Ambil password dari .env, bukan dari variabel global di atas
+	config.SMTPPassword = os.Getenv("SMTPPassword")
+
+	// Pengecekan keamanan sederhana (opsional)
+	if config.SMTPPassword == "" {
+		return fmt.Errorf("SMTPPassword tidak ditemukan di .env")
+	}
+	// ------------------------
 
 	m := gomail.NewMessage()
 	m.SetHeader("From", fmt.Sprintf("%s <%s>", config.FromName, config.FromEmail))
 	m.SetHeader("To", toEmail)
-	
+
 	var subject, htmlBody string
-	
+
 	switch purpose {
 	case "reset_password":
 		subject = "Kode Verifikasi Reset Password - Creacipe"

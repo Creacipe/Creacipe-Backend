@@ -22,9 +22,7 @@ func init() {
 
 func main() {
 	r := gin.Default()
-
-	// --- 2. TAMBAHKAN DUA BARIS INI ---
-	// Pastikan folder 'assets' ada
+	// --- Penyajian File Statis untuk Aset (Gambar, dll) ---
 	os.MkdirAll("./assets", os.ModePerm) 
 	// Sajikan folder 'assets' di URL '/assets'
 	r.Static("/assets", "./assets") 
