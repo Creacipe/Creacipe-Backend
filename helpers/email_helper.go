@@ -4,7 +4,8 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
-	"os" // <--- Import ini WAJIB ada untuk membaca .env
+	"os"
+	"strconv"
 	"time"
 
 	"gopkg.in/gomail.v2"
@@ -20,14 +21,24 @@ type EmailConfig struct {
 	FromName     string
 }
 
-// Konfigurasi tetap disini, KECUALI Password yang kita kosongkan/isi dummy
-var DefaultEmailConfig = EmailConfig{
-	SMTPHost:     "smtp-relay.brevo.com",
-	SMTPPort:     587,
-	SMTPUsername: "9bbc43001@smtp-brevo.com",
-	SMTPPassword: "", // <--- Dikosongkan disini, nanti diisi otomatis dari .env
-	FromEmail:    "stoksolo01@gmail.com",
-	FromName:     "Creacipe",
+// GetEmailConfig membaca konfigurasi email dari environment variables
+func GetEmailConfig() EmailConfig {
+	portStr := os.Getenv("SMTP_PORT")
+	port := 587 // default port
+	if portStr != "" {
+		if p, err := strconv.Atoi(portStr); err == nil {
+			port = p
+		}
+	}
+
+	return EmailConfig{
+		SMTPHost:     os.Getenv("SMTP_HOST"),
+		SMTPPort:     port,
+		SMTPUsername: os.Getenv("SMTP_USERNAME"),
+		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
+		FromEmail:    os.Getenv("SMTP_FROM_EMAIL"),
+		FromName:     os.Getenv("SMTP_FROM_NAME"),
+	}
 }
 
 // GenerateVerificationCode menghasilkan kode verifikasi 6 digit
@@ -43,25 +54,14 @@ func GenerateVerificationCode() string {
 
 // SendVerificationEmail mengirim email verifikasi
 func SendVerificationEmail(toEmail, toName, verificationCode, purpose string) error {
-	// Salin konfigurasi default
-	config := DefaultEmailConfig
-
-	// --- PERUBAHAN DISINI ---
-	// Ambil password dari .env, bukan dari variabel global di atas
-	config.SMTPPassword = os.Getenv("SMTPPassword")
-
-	// Pengecekan keamanan sederhana (opsional)
-	if config.SMTPPassword == "" {
-		return fmt.Errorf("SMTPPassword tidak ditemukan di .env")
-	}
-	// ------------------------
+	config := GetEmailConfig()
 
 	m := gomail.NewMessage()
 	m.SetHeader("From", fmt.Sprintf("%s <%s>", config.FromName, config.FromEmail))
 	m.SetHeader("To", toEmail)
-
+	
 	var subject, htmlBody string
-
+	
 	switch purpose {
 	case "reset_password":
 		subject = "Kode Verifikasi Reset Password - Creacipe"
