@@ -1,0 +1,2996 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>controllers: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">creacipe-backend/controllers/auth_controller.go (64.0%)</option>
+				
+				<option value="file1">creacipe-backend/controllers/category_controller.go (85.4%)</option>
+				
+				<option value="file2">creacipe-backend/controllers/comment_controller.go (82.9%)</option>
+				
+				<option value="file3">creacipe-backend/controllers/editor_controller.go (69.4%)</option>
+				
+				<option value="file4">creacipe-backend/controllers/interaction_controller.go (78.4%)</option>
+				
+				<option value="file5">creacipe-backend/controllers/menu_controller.go (47.0%)</option>
+				
+				<option value="file6">creacipe-backend/controllers/notification_controller.go (77.8%)</option>
+				
+				<option value="file7">creacipe-backend/controllers/recommendation_controller.go (15.3%)</option>
+				
+				<option value="file8">creacipe-backend/controllers/reporting_controller.go (78.5%)</option>
+				
+				<option value="file9">creacipe-backend/controllers/setup_controller.go (0.0%)</option>
+				
+				<option value="file10">creacipe-backend/controllers/tag_controller.go (75.6%)</option>
+				
+				<option value="file11">creacipe-backend/controllers/user_controller.go (60.3%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">// controllers/auth_controller.go
+package controllers
+
+import (
+        "creacipe-backend/config"
+        "creacipe-backend/models"
+        "creacipe-backend/helpers" 
+        "net/http"
+        "os"
+        "time"
+        "fmt"
+
+        // "crypto/rand"
+        // "encoding/hex"
+        "log"
+
+        "github.com/gin-gonic/gin"
+        "github.com/golang-jwt/jwt/v5"
+        "golang.org/x/crypto/bcrypt"
+)
+
+// Fungsi Register menangani logika pendaftaran pengguna baru.
+func Register(c *gin.Context) <span class="cov8" title="1">{
+        var input models.RegisterInput
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Mohon lengkapi data pendaftaran dan captcha"})
+                return
+        }</span>
+        // --- 1. VALIDASI RECAPTCHA
+        <span class="cov8" title="1">if err := helpers.VerifyRecaptcha(input.RecaptchaToken); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Verifikasi Captcha Gagal: Anda terdeteksi sebagai robot atau token kadaluwarsa."})
+                return
+        }</span>
+        // ---------------------------------------------
+
+        <span class="cov8" title="1">hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengenkripsi password"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">user := models.User{
+                Name:     input.Name,
+                Email:    input.Email,
+                Password: string(hashedPassword),
+                RoleID:     3,
+        }
+
+        if err := config.DB.Create(&amp;user).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah terdaftar"})
+                return
+        }</span>
+
+        // --- TAMBAHAN: BUAT PROFIL KOSONG OTOMATIS ---
+        // Setelah user berhasil dibuat, langsung buatkan profil kosong untuknya.
+        <span class="cov8" title="1">profile := models.UserProfile{UserID: user.UserID}
+        if err := config.DB.Create(&amp;profile).Error; err != nil </span><span class="cov0" title="0">{
+                // Idealnya, ada penanganan jika pembuatan profil gagal
+                log.Printf("Gagal membuat profil untuk user ID %d: %v", user.UserID, err)
+        }</span>
+        // ---------------------------------------------
+
+        // --- 2. TAMBAHKAN LOG UNTUK REGISTRASI ---
+        <span class="cov8" title="1">helpers.CreateLog(user.UserID, "USER_REGISTER", user.UserID, "users")
+        // ------------------------------------------
+
+        c.JSON(http.StatusOK, gin.H{"message": "Registrasi berhasil"})</span>
+}
+
+
+// Login sekarang mengembalikan access_token dan refresh_token
+func Login(c *gin.Context) <span class="cov8" title="1">{
+        var input models.LoginInput
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Mohon lengkapi data login dan captcha"})
+                return
+        }</span>
+        // --- 1. VALIDASI RECAPTCHA (TAMBAHAN BARU) ---
+        // Panggil helper yang baru kita buat
+        <span class="cov8" title="1">if err := helpers.VerifyRecaptcha(input.RecaptchaToken); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Verifikasi Captcha Gagal: Anda terdeteksi sebagai robot atau token kadaluwarsa."})
+                return
+        }</span>
+        // ---------------------------------------------
+
+        <span class="cov8" title="1">var user models.User
+    // Pastikan Preload("Role") ada di sini
+        if err := config.DB.Preload("Role").Where("email = ?", input.Email).First(&amp;user).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Email atau password salah"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if user.StatusUser == "inactive" </span><span class="cov8" title="1">{
+                c.JSON(http.StatusForbidden, gin.H{"error": "Akun Anda telah dinonaktifkan."})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Email atau password salah"})
+                return
+        }</span>
+
+        // 1. Buat Access Token (15 menit)
+    // KIRIM datanya secara EKSPLISIT
+        <span class="cov8" title="1">accessToken, err := helpers.CreateAccessToken(user.UserID, user.Role.RoleName)
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat access token"})
+                return
+        }</span>
+
+        // 2. Buat Refresh Token (7 hari)
+    // KIRIM datanya secara EKSPLISIT
+        <span class="cov8" title="1">refreshToken, err := helpers.CreateRefreshToken(user.UserID, user.Role.RoleName)
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat refresh token"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">helpers.CreateLog(user.UserID, "USER_LOGIN", user.UserID, "users")
+        
+        c.JSON(http.StatusOK, gin.H{
+                "access_token": accessToken,
+                "refresh_token": refreshToken,
+        })</span>
+}
+
+// --- FUNGSI REFRESH TOKEN (BARU &amp; DIPERBARUI) ---
+// RefreshToken memvalidasi refresh token dan memberikan access token baru
+func RefreshToken(c *gin.Context) <span class="cov8" title="1">{
+        var body struct {
+                RefreshToken string `json:"refresh_token"`
+        }
+
+        if err := c.ShouldBindJSON(&amp;body); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token dibutuhkan"})
+                return
+        }</span>
+
+        // 1. Validasi token
+        <span class="cov8" title="1">token, err := jwt.Parse(body.RefreshToken, func(token *jwt.Token) (interface{}, error) </span><span class="cov8" title="1">{
+                return []byte(os.Getenv("JWT_SECRET")), nil
+        }</span>)
+
+        <span class="cov8" title="1">if err != nil || !token.Valid </span><span class="cov8" title="1">{
+                c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token tidak valid atau kedaluwarsa"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">claims, ok := token.Claims.(jwt.MapClaims)
+        if !ok </span><span class="cov0" title="0">{
+                c.JSON(http.StatusUnauthorized, gin.H{"error": "Gagal membaca token"})
+                return
+        }</span>
+
+        // 2. Ambil UserID dari token
+        <span class="cov8" title="1">userID := uint(claims["sub"].(float64))
+        var user models.User
+        
+        // 3. Ambil data user terbaru (DENGAN ROLE)
+        if err := config.DB.Preload("Role").First(&amp;user, userID).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak ditemukan"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if user.StatusUser == "inactive" </span><span class="cov0" title="0">{
+                c.JSON(http.StatusForbidden, gin.H{"error": "Akun Anda telah dinonaktifkan."})
+                return
+        }</span>
+
+        // 4. Buat Access Token baru
+    // KIRIM datanya secara EKSPLISIT
+        <span class="cov8" title="1">newAccessToken, err := helpers.CreateAccessToken(user.UserID, user.Role.RoleName)
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat access token baru"})
+                return
+        }</span>
+
+        // 5. Kembalikan token baru
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{
+                "access_token": newAccessToken,
+        })</span>
+}
+
+//-------untuk reset password-------//
+// RequestPasswordReset mengirim kode verifikasi untuk reset password
+func RequestPasswordReset(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+
+        var input struct {
+                CurrentPassword string `json:"current_password" binding:"required"`
+        }
+
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Password saat ini harus diisi"})
+                return
+        }</span>
+
+        // Verifikasi password lama
+        <span class="cov8" title="1">if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.CurrentPassword)); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Password saat ini tidak valid"})
+                return
+        }</span>
+
+        // Generate kode verifikasi 6 digit
+        <span class="cov8" title="1">verificationCode := helpers.GenerateVerificationCode()
+        expiresAt := time.Now().Add(10 * time.Minute) // Berlaku 10 menit
+
+        // Hapus kode lama yang belum digunakan
+        config.DB.Where("user_id = ? AND is_used = false", user.UserID).Delete(&amp;models.PasswordReset{})
+
+        // Simpan kode baru
+        passwordReset := models.PasswordReset{
+                UserID:           user.UserID,
+                VerificationCode: verificationCode,
+                ExpiresAt:        expiresAt,
+                IsUsed:           false,
+        }
+
+        if err := config.DB.Create(&amp;passwordReset).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat kode verifikasi"})
+                return
+        }</span>
+        
+        <span class="cov8" title="1">if err := helpers.SendVerificationEmail(user.Email, user.Name, verificationCode, "reset_password"); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Gagal mengirim email verifikasi: %v", err)})
+                return
+        }</span>
+        
+        <span class="cov8" title="1">helpers.CreateLog(user.UserID, "REQUEST_PASSWORD_RESET", user.UserID, "users")
+
+        c.JSON(http.StatusOK, gin.H{
+                "message":    "Kode verifikasi telah dikirim ke email Anda",
+                "expires_at": expiresAt,
+        })</span>
+}
+
+// VerifyAndResetPassword memverifikasi kode dan reset password
+func VerifyAndResetPassword(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+
+        var input struct {
+                VerificationCode string `json:"verification_code" binding:"required,len=6"`
+                NewPassword      string `json:"new_password" binding:"required,min=6"`
+        }
+
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        // Cari kode verifikasi
+        <span class="cov8" title="1">var passwordReset models.PasswordReset
+        if err := config.DB.Where("user_id = ? AND verification_code = ? AND is_used = false", 
+                user.UserID, input.VerificationCode).First(&amp;passwordReset).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Kode verifikasi tidak valid"})
+                return
+        }</span>
+
+        // Cek apakah kode sudah expired
+        <span class="cov8" title="1">if time.Now().After(passwordReset.ExpiresAt) </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Kode verifikasi sudah kadaluarsa"})
+                return
+        }</span>
+
+        // Hash password baru
+        <span class="cov8" title="1">hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengenkripsi password"})
+                return
+        }</span>
+
+        // Update password
+        <span class="cov8" title="1">if err := config.DB.Model(&amp;user).Update("password", string(hashedPassword)).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengubah password"})
+                return
+        }</span>
+
+        // Tandai kode sebagai sudah digunakan
+        <span class="cov8" title="1">config.DB.Model(&amp;passwordReset).Update("is_used", true)
+
+        helpers.CreateLog(user.UserID, "PASSWORD_RESET_SUCCESS", user.UserID, "users")
+
+        c.JSON(http.StatusOK, gin.H{"message": "Password berhasil diubah"})</span>
+}
+
+// ========== EMAIL CHANGE WITH VERIFICATION ==========
+
+// RequestEmailChange mengirim kode verifikasi untuk ubah email
+func RequestEmailChange(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+
+        var input struct {
+                NewEmail string `json:"new_email" binding:"required,email"`
+        }
+
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        // Cek apakah email sudah digunakan
+        <span class="cov8" title="1">var existingUser models.User
+        if err := config.DB.Where("email = ? AND user_id != ?", input.NewEmail, user.UserID).First(&amp;existingUser).Error; err == nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah digunakan oleh pengguna lain"})
+                return
+        }</span>
+
+        // Generate kode verifikasi
+        <span class="cov8" title="1">verificationCode := helpers.GenerateVerificationCode()
+        expiresAt := time.Now().Add(10 * time.Minute)
+
+        // Hapus kode lama yang belum digunakan
+        config.DB.Where("user_id = ? AND is_used = false", user.UserID).Delete(&amp;models.EmailVerification{})
+
+        // Simpan kode baru
+        emailVerification := models.EmailVerification{
+                UserID:           user.UserID,
+                NewEmail:         input.NewEmail,
+                VerificationCode: verificationCode,
+                ExpiresAt:        expiresAt,
+                IsUsed:           false,
+        }
+
+        if err := config.DB.Create(&amp;emailVerification).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat kode verifikasi"})
+                return
+        }</span>
+
+        
+        <span class="cov8" title="1">if err := helpers.SendVerificationEmail(input.NewEmail, user.Name, verificationCode, "change_email"); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Gagal mengirim email verifikasi: %v", err)})
+                return
+        }</span>
+        
+        <span class="cov8" title="1">helpers.CreateLog(user.UserID, "REQUEST_EMAIL_CHANGE", user.UserID, "users")
+
+        c.JSON(http.StatusOK, gin.H{
+                "message":    "Kode verifikasi telah dikirim ke email baru Anda",
+                "new_email":  input.NewEmail,
+                "expires_at": expiresAt,
+        })</span>
+}
+
+// VerifyAndChangeEmail memverifikasi kode dan ubah email
+func VerifyAndChangeEmail(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+
+        var input struct {
+                VerificationCode string `json:"verification_code" binding:"required,len=6"`
+        }
+
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        // Cari kode verifikasi
+        <span class="cov8" title="1">var emailVerification models.EmailVerification
+        if err := config.DB.Where("user_id = ? AND verification_code = ? AND is_used = false", 
+                user.UserID, input.VerificationCode).First(&amp;emailVerification).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Kode verifikasi tidak valid"})
+                return
+        }</span>
+
+        // Cek apakah kode sudah expired
+        <span class="cov8" title="1">if time.Now().After(emailVerification.ExpiresAt) </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Kode verifikasi sudah kadaluarsa"})
+                return
+        }</span>
+
+        // Cek lagi apakah email masih available
+        <span class="cov8" title="1">var existingUser models.User
+        if err := config.DB.Where("email = ? AND user_id != ?", emailVerification.NewEmail, user.UserID).First(&amp;existingUser).Error; err == nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah digunakan oleh pengguna lain"})
+                return
+        }</span>
+
+        // Update email
+        <span class="cov8" title="1">if err := config.DB.Model(&amp;user).Update("email", emailVerification.NewEmail).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengubah email"})
+                return
+        }</span>
+
+        // Tandai kode sebagai sudah digunakan
+        <span class="cov8" title="1">config.DB.Model(&amp;emailVerification).Update("is_used", true)
+
+        helpers.CreateLog(user.UserID, "EMAIL_CHANGE_SUCCESS", user.UserID, "users")
+
+        c.JSON(http.StatusOK, gin.H{
+                "message":   "Email berhasil diubah",
+                "new_email": emailVerification.NewEmail,
+        })</span>
+}
+
+// ========== FORGOT PASSWORD (PUBLIC - NO AUTH REQUIRED) ==========
+
+// ForgotPasswordRequest mengirim kode OTP ke email user (tanpa perlu login)
+func ForgotPasswordRequest(c *gin.Context) <span class="cov8" title="1">{
+        var input struct {
+                Email string `json:"email" binding:"required,email"`
+        }
+
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Email harus diisi dengan format yang valid"})
+                return
+        }</span>
+
+        // Cari user berdasarkan email
+        <span class="cov8" title="1">var user models.User
+        if err := config.DB.Where("email = ?", input.Email).First(&amp;user).Error; err != nil </span><span class="cov8" title="1">{
+                // JANGAN beritahu user bahwa email tidak ditemukan (security)
+                // Kirim respons sukses agar attacker tidak tahu email mana yang terdaftar
+                c.JSON(http.StatusOK, gin.H{
+                        "message": "Jika email terdaftar, kode verifikasi akan dikirim ke email Anda",
+                })
+                return
+        }</span>
+
+        // Generate kode verifikasi 6 digit
+        <span class="cov8" title="1">verificationCode := helpers.GenerateVerificationCode()
+        expiresAt := time.Now().Add(10 * time.Minute) // Berlaku 10 menit
+
+        // Hapus kode lama yang belum digunakan untuk user ini
+        config.DB.Where("user_id = ? AND is_used = false", user.UserID).Delete(&amp;models.PasswordReset{})
+
+        // Simpan kode baru
+        passwordReset := models.PasswordReset{
+                UserID:           user.UserID,
+                VerificationCode: verificationCode,
+                ExpiresAt:        expiresAt,
+                IsUsed:           false,
+        }
+
+        if err := config.DB.Create(&amp;passwordReset).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat kode verifikasi"})
+                return
+        }</span>
+
+        // Kirim email
+        // fmt.Printf("[INFO] [FORGOT PASSWORD] Mengirim kode verifikasi ke email: %s\n", user.Email)
+        // fmt.Printf("[INFO] Kode verifikasi: %s\n", verificationCode)
+        
+        <span class="cov8" title="1">if err := helpers.SendVerificationEmail(user.Email, user.Name, verificationCode, "reset_password"); err != nil </span><span class="cov0" title="0">{
+                // fmt.Printf("[ERROR] Gagal mengirim email: %v\n", err)
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengirim email verifikasi"})
+                return
+        }</span>
+        
+        // fmt.Printf("[SUCCESS] Email lupa password berhasil dikirim ke: %s\n", user.Email)
+
+        <span class="cov8" title="1">helpers.CreateLog(user.UserID, "FORGOT_PASSWORD_REQUEST", user.UserID, "users")
+
+        c.JSON(http.StatusOK, gin.H{
+                "message":    "Kode verifikasi telah dikirim ke email Anda. Berlaku 10 menit.",
+                "expires_at": expiresAt,
+        })</span>
+}
+
+// ForgotPasswordVerify memverifikasi kode OTP dan reset password (tanpa perlu login)
+func ForgotPasswordVerify(c *gin.Context) <span class="cov8" title="1">{
+        var input struct {
+                Email            string `json:"email" binding:"required,email"`
+                VerificationCode string `json:"verification_code" binding:"required,len=6"`
+                NewPassword      string `json:"new_password" binding:"required,min=6"`
+        }
+
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Data tidak valid. Pastikan semua field diisi dengan benar."})
+                return
+        }</span>
+
+        // Cari user berdasarkan email
+        <span class="cov8" title="1">var user models.User
+        if err := config.DB.Where("email = ?", input.Email).First(&amp;user).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Email tidak terdaftar"})
+                return
+        }</span>
+
+        // Cari kode verifikasi yang valid
+        <span class="cov8" title="1">var passwordReset models.PasswordReset
+        if err := config.DB.Where("user_id = ? AND verification_code = ? AND is_used = false", 
+                user.UserID, input.VerificationCode).First(&amp;passwordReset).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Kode verifikasi tidak valid"})
+                return
+        }</span>
+
+        // Cek apakah kode sudah expired
+        <span class="cov8" title="1">if time.Now().After(passwordReset.ExpiresAt) </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Kode verifikasi sudah kadaluarsa. Silakan minta kode baru."})
+                return
+        }</span>
+
+        // Hash password baru
+        <span class="cov8" title="1">hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengenkripsi password"})
+                return
+        }</span>
+
+        // Update password
+        <span class="cov8" title="1">if err := config.DB.Model(&amp;user).Update("password", string(hashedPassword)).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengubah password"})
+                return
+        }</span>
+
+        // Tandai kode sebagai sudah digunakan
+        <span class="cov8" title="1">config.DB.Model(&amp;passwordReset).Update("is_used", true)
+
+        helpers.CreateLog(user.UserID, "FORGOT_PASSWORD_SUCCESS", user.UserID, "users")
+
+        c.JSON(http.StatusOK, gin.H{"message": "Password berhasil direset. Silakan login dengan password baru Anda."})</span>
+}</pre>
+		
+		<pre class="file" id="file1" style="display: none">// controllers/category_controller.go
+package controllers
+
+import (
+        "creacipe-backend/config"
+        "creacipe-backend/helpers"
+        "creacipe-backend/models"
+        "net/http"
+
+        "github.com/gin-gonic/gin"
+)
+
+// CreateCategory membuat kategori tag baru (hanya admin/editor).
+func CreateCategory(c *gin.Context) <span class="cov8" title="1">{
+        var input models.CreateCategoryInput
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">category := models.Category{CategoryName: input.CategoryName}
+        if err := config.DB.Create(&amp;category).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat kategori"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">user := c.MustGet("user").(models.User)
+        helpers.CreateLog(user.UserID, "CREATE_CATEGORY", category.CategoryID, "categories")
+
+        c.JSON(http.StatusCreated, gin.H{"data": category})</span>
+}
+
+// GetAllCategories menampilkan semua kategori tag.
+func GetAllCategories(c *gin.Context) <span class="cov8" title="1">{
+        var categories []models.Category
+        if err := config.DB.Find(&amp;categories).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data kategori"})
+                return
+        }</span>
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": categories})</span>
+}
+
+// UpdateCategory mengubah kategori yang ada (hanya admin/editor).
+func UpdateCategory(c *gin.Context) <span class="cov8" title="1">{
+        var category models.Category
+        if err := config.DB.First(&amp;category, c.Param("id")).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Kategori tidak ditemukan"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">var input models.UpdateCategoryInput
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := config.DB.Model(&amp;category).Update("category_name", input.CategoryName).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui kategori"})
+                return
+        }</span>
+        
+        <span class="cov8" title="1">user := c.MustGet("user").(models.User)
+        helpers.CreateLog(user.UserID, "UPDATE_CATEGORY", category.CategoryID, "categories")
+
+        c.JSON(http.StatusOK, gin.H{"data": category})</span>
+}
+
+// DeleteCategory menghapus kategori (hanya admin/editor).
+func DeleteCategory(c *gin.Context) <span class="cov8" title="1">{
+        var category models.Category
+        if err := config.DB.First(&amp;category, c.Param("id")).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Kategori tidak ditemukan"})
+                return
+        }</span>
+        
+        <span class="cov8" title="1">categoryIDtoLog := category.CategoryID
+
+        // Catatan: Jika ada tag yang masih menggunakan kategori ini, penghapusan bisa gagal
+        // tergantung konfigurasi database. Penanganan lebih lanjut mungkin diperlukan.
+        if err := config.DB.Delete(&amp;category).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus kategori, pastikan tidak ada tag yang menggunakannya"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">user := c.MustGet("user").(models.User)
+        helpers.CreateLog(user.UserID, "DELETE_CATEGORY", categoryIDtoLog, "categories")
+
+        c.JSON(http.StatusOK, gin.H{"message": "Kategori berhasil dihapus"})</span>
+}</pre>
+		
+		<pre class="file" id="file2" style="display: none">package controllers
+
+import (
+        "creacipe-backend/config"
+        "creacipe-backend/models"
+        "net/http"
+        "strconv"
+
+        "github.com/gin-gonic/gin"
+)
+
+// CreateComment - User membuat komentar di resep
+func CreateComment(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+        menuID := c.Param("id")
+
+        // 1. Validasi: Resep harus ada
+        var menu models.Menu
+        if err := config.DB.First(&amp;menu, menuID).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan"})
+                return
+        }</span>
+
+        // 2. Bind input JSON
+        <span class="cov8" title="1">var input struct {
+                CommentText string `json:"comment_text" binding:"required"`
+                ParentID    *uint  `json:"parent_id"`
+        }
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Komentar tidak boleh kosong"})
+                return
+        }</span>
+
+        // Variabel penampung logika
+        <span class="cov8" title="1">var finalParentID *uint     
+        var notificationUserID uint 
+
+        // 3. Logika Penentuan Parent &amp; Notifikasi
+        if input.ParentID != nil </span><span class="cov8" title="1">{
+                // --- KASUS REPLY (BALASAN) ---
+                var targetComment models.Comment
+                
+                // Cari komentar yang sedang dibalas
+                if err := config.DB.First(&amp;targetComment, *input.ParentID).Error; err != nil </span><span class="cov8" title="1">{
+                        c.JSON(http.StatusNotFound, gin.H{"error": "Komentar yang direply tidak ditemukan"})
+                        return
+                }</span>
+
+                // Validasi: Pastikan komentar target ada di menu yang sama
+                <span class="cov8" title="1">if targetComment.MenuID != menu.MenuID </span><span class="cov0" title="0">{
+                        c.JSON(http.StatusBadRequest, gin.H{"error": "Komentar tidak valid untuk resep ini"})
+                        return
+                }</span>
+                // A. Tentukan Penerima Notifikasi
+                <span class="cov8" title="1">notificationUserID = targetComment.UserID
+
+                // B. Tentukan Struktur Database (Flattening):
+                // Jika komentar yang dibalas SUDAH punya parent (artinya dia adalah reply),
+                // maka komentar baru kita harus nempel ke Parent-nya dia (Root).
+                if targetComment.ParentID != nil </span><span class="cov0" title="0">{
+                        finalParentID = targetComment.ParentID
+                }</span> else<span class="cov8" title="1"> {
+                        // Jika komentar yang dibalas adalah Root (ParentID nil),
+                        // maka kita nempel langsung ke dia.
+                        finalParentID = input.ParentID
+                }</span>
+
+        } else<span class="cov8" title="1"> {
+                // --- KASUS KOMENTAR BARU (ROOT) ---
+                finalParentID = nil
+                // Notifikasi dikirim ke Pemilik Resep
+                if menu.UserID != user.UserID </span><span class="cov0" title="0">{
+                        notificationUserID = menu.UserID
+                }</span>
+        }
+
+        // 4. Simpan Komentar ke Database
+        <span class="cov8" title="1">comment := models.Comment{
+                MenuID:      menu.MenuID,
+                UserID:      user.UserID,
+                ParentID:    finalParentID, // Gunakan ID yang sudah diluruskan logic-nya
+                CommentText: input.CommentText,
+        }
+
+        if err := config.DB.Create(&amp;comment).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat komentar"})
+                return
+        }</span>
+
+        // 5. Kirim Notifikasi (Jika perlu)
+        // Hanya kirim jika penerima bukan diri sendiri
+        <span class="cov8" title="1">if notificationUserID != 0 &amp;&amp; notificationUserID != user.UserID </span><span class="cov8" title="1">{
+                var notifMessage string
+                var notifTitle string
+
+                if input.ParentID != nil </span><span class="cov8" title="1">{
+                        notifTitle = "Balasan Baru"
+                        notifMessage = user.Name + " membalas komentar Anda: \"" + input.CommentText + "\""
+                }</span> else<span class="cov0" title="0"> {
+                        notifTitle = "Komentar Baru"
+                        notifMessage = user.Name + " berkomentar di resep Anda: \"" + input.CommentText + "\""
+                }</span>
+
+                <span class="cov8" title="1">notification := models.Notification{
+                        UserID:      notificationUserID,
+                        Title:       notifTitle,
+                        Message:     notifMessage,
+                        Type:        "info",
+                        IsRead:      false,
+                        RelatedID:   &amp;menu.MenuID,
+                        RelatedType: "menu",
+                }
+                config.DB.Create(&amp;notification)</span>
+        }
+
+        <span class="cov8" title="1">c.JSON(http.StatusCreated, gin.H{
+                "message": "Komentar berhasil ditambahkan",
+                "data":    comment,
+        })</span>
+}
+
+// GetCommentsByMenu - Get semua komentar untuk suatu resep (dengan nested replies)
+func GetCommentsByMenu(c *gin.Context) <span class="cov8" title="1">{
+        menuID := c.Param("id")
+
+        // Cek apakah kolom parent_id ada (untuk backward compatibility)
+        var comments []models.Comment
+        var err error
+        
+        // Coba query dengan parent_id filter
+        err = config.DB.Where("menu_id = ? AND (parent_id IS NULL OR parent_id = 0)", menuID).
+                Order("created_at DESC").
+                Find(&amp;comments).Error
+        
+        // Jika error karena kolom tidak ada, fallback ke query tanpa parent_id
+        if err != nil </span><span class="cov0" title="0">{
+                err = config.DB.Where("menu_id = ?", menuID).
+                        Order("created_at DESC").
+                        Find(&amp;comments).Error
+        }</span>
+        
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil komentar"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">var buildComment func(models.Comment) models.CommentWithUser
+        buildComment = func(comment models.Comment) models.CommentWithUser </span><span class="cov8" title="1">{
+                var user models.User
+                config.DB.Preload("Profile").First(&amp;user, comment.UserID)
+
+                avatar := ""
+                if user.Profile.ProfilePictureURL != "" </span><span class="cov0" title="0">{
+                        avatar = user.Profile.ProfilePictureURL
+                }</span>
+
+                // Get replies untuk comment ini (jika kolom parent_id ada)
+                <span class="cov8" title="1">var replies []models.Comment
+                var repliesWithUser []models.CommentWithUser
+                
+                // Try to get replies, ignore error jika kolom belum ada
+                err := config.DB.Where("parent_id = ?", comment.CommentID).
+                        Order("created_at ASC").
+                        Find(&amp;replies).Error
+                
+                if err == nil </span><span class="cov8" title="1">{
+                        for _, reply := range replies </span><span class="cov8" title="1">{
+                                repliesWithUser = append(repliesWithUser, buildComment(reply))
+                        }</span>
+                }
+
+                <span class="cov8" title="1">return models.CommentWithUser{
+                        CommentID:   comment.CommentID,
+                        MenuID:      comment.MenuID,
+                        UserID:      comment.UserID,
+                        ParentID:    comment.ParentID,
+                        UserName:    user.Name,
+                        UserAvatar:  avatar,
+                        CommentText: comment.CommentText,
+                        CreatedAt:   comment.CreatedAt.Format("2006-01-02 15:04:05"),
+                        Replies:     repliesWithUser,
+                }</span>
+        }
+
+        <span class="cov8" title="1">var result []models.CommentWithUser
+        for _, comment := range comments </span><span class="cov8" title="1">{
+                result = append(result, buildComment(comment))
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{
+                "data":  result,
+                "total": len(result),
+        })</span>
+}
+
+// DeleteComment
+func DeleteComment(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+        commentID, _ := strconv.Atoi(c.Param("id"))
+
+        var comment models.Comment
+
+        if err := config.DB.First(&amp;comment, commentID).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Komentar tidak ditemukan"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if comment.UserID != user.UserID </span><span class="cov8" title="1">{
+                c.JSON(http.StatusForbidden, gin.H{"error": "Anda tidak memiliki akses untuk menghapus komentar ini"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := config.DB.Delete(&amp;comment).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus komentar dari database"})
+                return
+        }</span>
+
+        // 4. Berikan respon sukses
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"message": "Komentar berhasil dihapus"})</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">// controllers/editor_controller.go
+package controllers
+
+import (
+        "creacipe-backend/config"
+        "creacipe-backend/helpers" // &lt;-- 1. IMPORT HELPER
+        "creacipe-backend/models"
+        "net/http"
+
+        "github.com/gin-gonic/gin"
+)
+
+// GetDashboardStats mengambil statistik untuk dashboard editor/admin
+func GetDashboardStats(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+
+        // Hitung resep pending
+        var pendingCount int64
+        config.DB.Model(&amp;models.Menu{}).Where("status = ?", "pending").Count(&amp;pendingCount)
+
+        // Hitung total resep approved
+        var approvedCount int64
+        config.DB.Model(&amp;models.Menu{}).Where("status = ?", "approved").Count(&amp;approvedCount)
+
+        // Hitung total resep rejected
+        var rejectedCount int64
+        config.DB.Model(&amp;models.Menu{}).Where("status = ?", "rejected").Count(&amp;rejectedCount)
+
+        // Hitung total pengguna (khusus admin)
+        var totalUsers int64
+        if user.Role.RoleName == "admin" </span><span class="cov0" title="0">{
+                config.DB.Model(&amp;models.User{}).Count(&amp;totalUsers)
+        }</span>
+
+        // Hitung total kategori
+        <span class="cov8" title="1">var totalCategories int64
+        config.DB.Model(&amp;models.Category{}).Count(&amp;totalCategories)
+
+        // Hitung total tag
+        var totalTags int64
+        config.DB.Model(&amp;models.Tag{}).Count(&amp;totalTags)
+
+        stats := gin.H{
+                "pending_recipes":  pendingCount,
+                "approved_recipes": approvedCount,
+                "rejected_recipes": rejectedCount,
+                "total_categories": totalCategories,
+                "total_tags":       totalTags,
+        }
+
+        // Tambahkan data user untuk admin
+        if user.Role.RoleName == "admin" </span><span class="cov0" title="0">{
+                stats["total_users"] = totalUsers
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": stats})</span>
+}
+
+// GetAllMenusForModeration menampilkan semua resep (semua status) untuk editor/admin.
+func GetAllMenusForModeration(c *gin.Context) <span class="cov0" title="0">{
+        var menus []models.Menu
+        
+        // Ambil parameter status dari query string
+        status := c.Query("status")
+        
+        query := config.DB.Preload("User").Preload("User.Role")
+        
+        // Filter berdasarkan status jika ada
+        if status != "" </span><span class="cov0" title="0">{
+                query = query.Where("status = ?", status)
+        }</span>
+        
+        <span class="cov0" title="0">if err := query.Order("created_at desc").Find(&amp;menus).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data resep"})
+                return
+        }</span>
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"data": menus})</span>
+}
+
+// GetPendingMenus menampilkan resep yang menunggu persetujuan ('pending').
+func GetPendingMenus(c *gin.Context) <span class="cov0" title="0">{
+        var menus []models.Menu
+        if err := config.DB.Preload("User").Preload("User.Role").Where("status = ?", "pending").Order("created_at asc").Find(&amp;menus).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data resep pending"})
+                return
+        }</span>
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"data": menus})</span>
+}
+
+// UpdateMenuStatus menangani logika approve/reject resep oleh editor/admin.
+func UpdateMenuStatus(c *gin.Context) <span class="cov8" title="1">{
+        var menu models.Menu
+        if err := config.DB.First(&amp;menu, c.Param("id")).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">var input models.UpdateMenuStatusInput
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        // Ambil data editor/admin yang melakukan aksi
+        <span class="cov8" title="1">moderator, _ := c.Get("user")
+        moderatorInfo := moderator.(models.User)
+
+        updates := map[string]interface{}{"status": input.Status}
+        if input.Status == "rejected" </span><span class="cov8" title="1">{
+                updates["rejection_reason"] = input.RejectionReason
+        }</span> else<span class="cov8" title="1"> if input.Status == "approved" </span><span class="cov8" title="1">{
+                updates["rejection_reason"] = ""
+        }</span>
+
+        <span class="cov8" title="1">if err := config.DB.Model(&amp;menu).Updates(updates).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui status resep"})
+                return
+        }</span>
+
+        // --- 2. TAMBAHKAN LOG UNTUK AKSI MODERASI ---
+        <span class="cov8" title="1">actionLog := "APPROVE_MENU"
+        if input.Status == "rejected" </span><span class="cov8" title="1">{
+                actionLog = "REJECT_MENU"
+        }</span>
+        <span class="cov8" title="1">helpers.CreateLog(moderatorInfo.UserID, actionLog, menu.MenuID, "menus")
+        // ---------------------------------------------
+        // --- 3. BUAT NOTIFIKASI UNTUK PEMILIK RESEP ---
+        if input.Status == "approved" </span><span class="cov8" title="1">{
+                helpers.CreateNotification(
+                        menu.UserID,
+                        "Resep Disetujui 🎉",
+                        "Resep \""+menu.Title+"\" telah disetujui dan dipublikasikan!",
+                        "success",
+                        &amp;menu.MenuID,
+                        "menu",
+                )
+        }</span> else<span class="cov8" title="1"> if input.Status == "rejected" </span><span class="cov8" title="1">{
+                reason := input.RejectionReason
+                if reason == "" </span><span class="cov0" title="0">{
+                        reason = "Tidak ada alasan yang diberikan"
+                }</span>
+                <span class="cov8" title="1">helpers.CreateNotification(
+                        menu.UserID,
+                        "Resep Ditolak",
+                        "Resep \""+menu.Title+"\" ditolak. Alasan: "+reason,
+                        "danger",
+                        &amp;menu.MenuID,
+                        "menu",
+                )</span>
+        }
+        // -----------------------------------------------
+        
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": menu})</span>
+}</pre>
+		
+		<pre class="file" id="file4" style="display: none">// controllers/interaction_controller.go
+package controllers
+
+import (
+        "creacipe-backend/config"
+        "creacipe-backend/helpers" // &lt;-- IMPORT HELPER
+        "creacipe-backend/models"
+        "net/http"
+
+        "github.com/gin-gonic/gin"
+)
+
+// AddTagToMenu menangani logika penambahan tag ke sebuah resep.
+func AddTagToMenu(c *gin.Context) <span class="cov8" title="1">{
+        var menu models.Menu
+        if err := config.DB.First(&amp;menu, c.Param("id")).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan"})
+                return
+        }</span>
+        <span class="cov8" title="1">var input models.AddTagInput
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Input tidak valid"})
+                return
+        }</span>
+        <span class="cov8" title="1">var tag models.Tag
+        if err := config.DB.First(&amp;tag, input.TagID).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Tag tidak ditemukan"})
+                return
+        }</span>
+        
+        <span class="cov8" title="1">if err := config.DB.Model(&amp;menu).Association("Tags").Append(&amp;tag); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menambahkan tag"})
+                return
+        }</span>
+
+        // Catat aktivitas
+        <span class="cov8" title="1">user := c.MustGet("user").(models.User)
+        helpers.CreateLog(user.UserID, "ADD_TAG_TO_MENU", menu.MenuID, "menus")
+
+        c.JSON(http.StatusOK, gin.H{"message": "Tag berhasil ditambahkan ke resep"})</span>
+}
+
+// BookmarkMenu menangani penambahan resep ke daftar bookmark pengguna.
+func BookmarkMenu(c *gin.Context) <span class="cov8" title="1">{
+        var menu models.Menu
+        if err := config.DB.First(&amp;menu, c.Param("id")).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan"})
+                return
+        }</span>
+        <span class="cov8" title="1">user := c.MustGet("user").(models.User)
+        
+        if err := config.DB.Model(&amp;user).Association("Bookmarks").Append(&amp;menu); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan bookmark"})
+                return
+        }</span>
+
+        // Catat aktivitas
+        <span class="cov8" title="1">helpers.CreateLog(user.UserID, "BOOKMARK_MENU", menu.MenuID, "menus")
+
+        c.JSON(http.StatusOK, gin.H{"message": "Resep berhasil di-bookmark"})</span>
+}
+
+// UnbookmarkMenu menangani penghapusan resep dari daftar bookmark.
+func UnbookmarkMenu(c *gin.Context) <span class="cov8" title="1">{
+        var menu models.Menu
+        if err := config.DB.First(&amp;menu, c.Param("id")).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan"})
+                return
+        }</span>
+        <span class="cov8" title="1">user := c.MustGet("user").(models.User)
+        
+        if err := config.DB.Model(&amp;user).Association("Bookmarks").Delete(&amp;menu); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus bookmark"})
+                return
+        }</span>
+
+        // Catat aktivitas
+        <span class="cov8" title="1">helpers.CreateLog(user.UserID, "UNBOOKMARK_MENU", menu.MenuID, "menus")
+
+        c.JSON(http.StatusOK, gin.H{"message": "Bookmark berhasil dihapus"})</span>
+}
+
+// handleVote adalah fungsi internal untuk mengelola logika like/dislike.
+func handleVote(c *gin.Context, voteType string) <span class="cov8" title="1">{
+        var menu models.Menu
+        if err := config.DB.First(&amp;menu, c.Param("id")).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan"})
+                return
+        }</span>
+        <span class="cov8" title="1">user := c.MustGet("user").(models.User)
+
+        var vote models.MenuVote
+        err := config.DB.Where("user_id = ? AND menu_id = ?", user.UserID, menu.MenuID).First(&amp;vote).Error
+
+        var actionLog string
+        var message string
+
+        if err == nil </span><span class="cov8" title="1">{
+                // Jika sudah ada record vote sebelumnya
+                if voteType == "like" </span><span class="cov8" title="1">{
+                        if vote.LikesCount == 1 </span><span class="cov8" title="1">{
+                                // User sudah like, sekarang unlike (toggle off)
+                                vote.LikesCount = 0
+                                actionLog = "UNLIKE_MENU"
+                                message = "Like berhasil dibatalkan"
+                        }</span> else<span class="cov0" title="0"> {
+                                // User belum like atau sedang dislike, sekarang like
+                                vote.LikesCount = 1
+                                vote.DislikesCount = 0 // Hapus dislike jika ada
+                                actionLog = "LIKE_MENU"
+                                message = "Resep berhasil di-like"
+                        }</span>
+                } else<span class="cov8" title="1"> { // voteType == "dislike"
+                        if vote.DislikesCount == 1 </span><span class="cov0" title="0">{
+                                // User sudah dislike, sekarang un-dislike (toggle off)
+                                vote.DislikesCount = 0
+                                actionLog = "UNDISLIKE_MENU"
+                                message = "Dislike berhasil dibatalkan"
+                        }</span> else<span class="cov8" title="1"> {
+                                // User belum dislike atau sedang like, sekarang dislike
+                                vote.DislikesCount = 1
+                                vote.LikesCount = 0 // Hapus like jika ada
+                                actionLog = "DISLIKE_MENU"
+                                message = "Resep berhasil di-dislike"
+                        }</span>
+                }
+                <span class="cov8" title="1">config.DB.Save(&amp;vote)</span>
+        } else<span class="cov8" title="1"> {
+                // Jika belum ada record, buat baru
+                newVote := models.MenuVote{
+                        UserID:        user.UserID,
+                        MenuID:        menu.MenuID,
+                        LikesCount:    0,
+                        DislikesCount: 0,
+                }
+                
+                if voteType == "like" </span><span class="cov8" title="1">{
+                        newVote.LikesCount = 1
+                        actionLog = "LIKE_MENU"
+                        message = "Resep berhasil di-like"
+                }</span> else<span class="cov8" title="1"> {
+                        newVote.DislikesCount = 1
+                        actionLog = "DISLIKE_MENU"
+                        message = "Resep berhasil di-dislike"
+                }</span>
+                
+                <span class="cov8" title="1">config.DB.Create(&amp;newVote)</span>
+        }
+
+        // Catat aktivitas
+        <span class="cov8" title="1">helpers.CreateLog(user.UserID, actionLog, menu.MenuID, "menus")
+        
+        // Return current state
+        var currentVote models.MenuVote
+        config.DB.Where("user_id = ? AND menu_id = ?", user.UserID, menu.MenuID).First(&amp;currentVote)
+        
+        c.JSON(http.StatusOK, gin.H{
+                "message":        message,
+                "is_liked":       currentVote.LikesCount == 1,
+                "is_disliked":    currentVote.DislikesCount == 1,
+        })</span>
+}
+
+// LikeMenu menangani saat user menekan tombol 'like'.
+func LikeMenu(c *gin.Context) <span class="cov8" title="1">{
+        handleVote(c, "like")
+}</span>
+
+// DislikeMenu menangani saat user menekan tombol 'dislike'.
+func DislikeMenu(c *gin.Context) <span class="cov8" title="1">{
+        handleVote(c, "dislike")
+}</span>
+
+// GetUserInteractionStatus mendapatkan status like/dislike/bookmark user untuk sebuah menu
+func GetUserInteractionStatus(c *gin.Context) <span class="cov8" title="1">{
+        var menu models.Menu
+        if err := config.DB.First(&amp;menu, c.Param("id")).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan"})
+                return
+        }</span>
+        
+        <span class="cov8" title="1">user := c.MustGet("user").(models.User)
+        
+        // Cek status vote
+        var vote models.MenuVote
+        isLiked := false
+        isDisliked := false
+        err := config.DB.Where("user_id = ? AND menu_id = ?", user.UserID, menu.MenuID).First(&amp;vote).Error
+        if err == nil </span><span class="cov8" title="1">{
+                isLiked = vote.LikesCount == 1
+                isDisliked = vote.DislikesCount == 1
+        }</span>
+        
+        // Cek status bookmark
+        <span class="cov8" title="1">var bookmarkCount int64
+        config.DB.Table("user_bookmarks").Where("user_id = ? AND menu_id = ?", user.UserID, menu.MenuID).Count(&amp;bookmarkCount)
+        isBookmarked := bookmarkCount &gt; 0
+        
+        c.JSON(http.StatusOK, gin.H{
+                "is_liked":      isLiked,
+                "is_disliked":   isDisliked,
+                "is_bookmarked": isBookmarked,
+        })</span>
+}</pre>
+		
+		<pre class="file" id="file5" style="display: none">// controllers/menu_controller.go
+package controllers
+
+import (
+        "creacipe-backend/config"
+        "creacipe-backend/helpers" // &lt;-- IMPORT HELPER
+        "creacipe-backend/models"
+        "net/http"
+        "path/filepath"
+        "strings"
+
+        "github.com/gin-gonic/gin"
+)
+
+// -----------------------------------------
+// -----------------------------------------
+// CreateMenu menangani pembuatan resep baru (DENGAN UPLOAD FILE + TAGS)
+func CreateMenu(c *gin.Context) <span class="cov8" title="1">{
+        // 2. Baca form-data
+        title := c.PostForm("title")
+        description := c.PostForm("description")
+        ingredientsJSON := c.PostForm("ingredients")   // Frontend harus kirim JSON string
+        instructionsJSON := c.PostForm("instructions") // Frontend harus kirim JSON string
+
+        user := c.MustGet("user").(models.User)
+        var finalImageURL string // Variabel untuk menyimpan URL gambar
+
+        // 3. Proses upload file (WAJIB)
+        file, err := c.FormFile("image_file")
+
+        if err != nil </span><span class="cov8" title="1">{
+                // Jika tidak ada file diupload, return error
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Gambar wajib diupload"})
+                return
+        }</span>
+
+        // Upload file ke folder assets
+        <span class="cov8" title="1">slug := helpers.Slugify(title)
+        ext := filepath.Ext(file.Filename)
+        uniqueFilename := helpers.FindUniqueFilename(slug, ext)
+        savePath := filepath.Join("assets", uniqueFilename)
+
+        if err := c.SaveUploadedFile(file, savePath); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan file"})
+                return
+        }</span>
+        <span class="cov8" title="1">finalImageURL = "http://localhost:8080/assets/" + uniqueFilename
+
+        // 4. Buat struct Menu untuk disimpan
+        menu := models.Menu{
+                UserID:       user.UserID,
+                Title:        title,
+                Description:  description,
+                Ingredients:  ingredientsJSON,
+                Instructions: instructionsJSON,
+                ImageURL:     finalImageURL,
+                Status:       "pending",
+        }
+
+        if err := config.DB.Create(&amp;menu).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan resep ke database"})
+                return
+        }</span>
+
+        // --- 5. LOGIKA TAGIDS YANG DIPERBAIKI (DITAMBAHKAN KEMBALI) ---
+        // Ambil TagIDs sebagai string (misal: "1,3,5")
+        <span class="cov8" title="1">tagIDsStr := c.PostForm("tag_ids")
+        if tagIDsStr != "" </span><span class="cov0" title="0">{
+                // Ubah string "1,3,5" menjadi array string ["1", "3", "5"]
+                tagIDs := strings.Split(tagIDsStr, ",")
+
+                if len(tagIDs) &gt; 0 </span><span class="cov0" title="0">{
+                        var tags []models.Tag
+                        // Cari semua tag berdasarkan array ID
+                        config.DB.Where(tagIDs).Find(&amp;tags)
+                        
+                        // Tempelkan tag-tag yang ditemukan ke resep
+                        if len(tags) &gt; 0 </span><span class="cov0" title="0">{
+                                config.DB.Model(&amp;menu).Association("Tags").Append(&amp;tags)
+                        }</span>
+                }
+        }
+        // --------------------------------------------------------
+
+        // --- 6. HELPER LOG TETAP DI SINI ---
+        <span class="cov8" title="1">helpers.CreateLog(user.UserID, "CREATE_MENU", menu.MenuID, "menus")
+        // ------------------------------------
+
+        c.JSON(http.StatusOK, gin.H{"data": menu})</span>
+}
+
+// GetAllMenus mengambil daftar semua resep yang sudah disetujui.
+func GetAllMenus(c *gin.Context) <span class="cov0" title="0">{
+        var menus []models.Menu
+        if err := config.DB.Preload("User").Preload("Tags").Where("status = ?", "approved").Find(&amp;menus).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep"})
+                return
+        }</span>
+
+        // Tambahkan stats untuk setiap menu
+        <span class="cov0" title="0">type MenuWithStats struct {
+                models.Menu
+                TotalLikes     int `json:"total_likes"`
+                TotalDislikes  int `json:"total_dislikes"`
+                TotalBookmarks int `json:"total_bookmarks"`
+        }
+
+        var results []MenuWithStats
+        for _, menu := range menus </span><span class="cov0" title="0">{
+                var totalLikes, totalDislikes, totalBookmarks int64
+
+                // Get likes and dislikes count
+                config.DB.Model(&amp;models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&amp;totalLikes)
+                config.DB.Model(&amp;models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&amp;totalDislikes)
+
+                // Get bookmarks count
+                config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&amp;totalBookmarks)
+
+                results = append(results, MenuWithStats{
+                        Menu:           menu,
+                        TotalLikes:     int(totalLikes),
+                        TotalDislikes:  int(totalDislikes),
+                        TotalBookmarks: int(totalBookmarks),
+                })
+        }</span>
+        
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"data": results})</span>
+}
+
+// GetMenuByID mengambil detail satu resep berdasarkan ID (jika sudah disetujui).
+func GetMenuByID(c *gin.Context) <span class="cov8" title="1">{
+        var menu models.Menu
+        
+        // Ambil menu tanpa filter status dulu, dengan preload Tags
+        if err := config.DB.Preload("User").Preload("Tags").First(&amp;menu, c.Param("id")).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan"})
+                return
+        }</span>
+        
+        // Hitung total likes, dislikes, dan bookmarks (sama seperti GetPopularMenus)
+        <span class="cov0" title="0">var totalLikes, totalDislikes int64
+        config.DB.Model(&amp;models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&amp;totalLikes)
+        config.DB.Model(&amp;models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&amp;totalDislikes)
+        
+        var totalBookmarks int64
+        config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&amp;totalBookmarks)
+        
+        // Buat response dengan count
+        type MenuDetailResult struct {
+                models.Menu
+                TotalLikes     int `json:"total_likes"`
+                TotalDislikes  int `json:"total_dislikes"`
+                TotalBookmarks int `json:"total_bookmarks"`
+        }
+        
+        result := MenuDetailResult{
+                Menu:           menu,
+                TotalLikes:     int(totalLikes),
+                TotalDislikes:  int(totalDislikes),
+                TotalBookmarks: int(totalBookmarks),
+        }
+        
+        // Kembalikan data menu (frontend yang akan handle logic approved/ownership)
+        c.JSON(http.StatusOK, gin.H{"data": result})</span>
+}
+
+// UpdateMenu menangani pembaruan data resep oleh pemiliknya atau moderator.
+func UpdateMenu(c *gin.Context) <span class="cov0" title="0">{
+        var menu models.Menu
+        if err := config.DB.Preload("Tags").First(&amp;menu, c.Param("id")).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan"})
+                return
+        }</span>
+
+        // var input models.UpdateMenuInput
+        // if err := c.ShouldBindJSON(&amp;input); err != nil {
+        //         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        //         return
+        // }
+        
+        <span class="cov0" title="0">user := c.MustGet("user").(models.User)
+
+        // --- PERBAIKAN HAK AKSES ---
+        // Pengecekan menggunakan nama peran yang lebih mudah dibaca.
+        if user.UserID != menu.UserID &amp;&amp; user.Role.RoleName != "admin" &amp;&amp; user.Role.RoleName != "editor" </span><span class="cov0" title="0">{
+                c.JSON(http.StatusForbidden, gin.H{"error": "Anda tidak memiliki akses untuk mengubah resep ini"})
+                return
+        }</span>
+
+        // Baca form-data (seperti CreateMenu)
+        <span class="cov0" title="0">title := c.PostForm("title")
+        description := c.PostForm("description")
+        ingredientsJSON := c.PostForm("ingredients")
+        instructionsJSON := c.PostForm("instructions")
+
+        // Update field-field text
+        if title != "" </span><span class="cov0" title="0">{
+                menu.Title = title
+        }</span>
+        <span class="cov0" title="0">if description != "" </span><span class="cov0" title="0">{
+                menu.Description = description
+        }</span>
+        <span class="cov0" title="0">if ingredientsJSON != "" </span><span class="cov0" title="0">{
+                menu.Ingredients = ingredientsJSON
+        }</span>
+        <span class="cov0" title="0">if instructionsJSON != "" </span><span class="cov0" title="0">{
+                menu.Instructions = instructionsJSON
+        }</span>
+
+        // Proses upload file jika ada
+        <span class="cov0" title="0">file, err := c.FormFile("image_file")
+        if err == nil </span><span class="cov0" title="0">{
+                // Ada file baru diupload
+                slug := helpers.Slugify(title)
+                ext := filepath.Ext(file.Filename)
+                uniqueFilename := helpers.FindUniqueFilename(slug, ext)
+                savePath := filepath.Join("assets", uniqueFilename)
+
+                if err := c.SaveUploadedFile(file, savePath); err != nil </span><span class="cov0" title="0">{
+                        c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan file"})
+                        return
+                }</span>
+                <span class="cov0" title="0">menu.ImageURL = "http://localhost:8080/assets/" + uniqueFilename</span>
+        }
+
+        // Update tags jika ada
+        <span class="cov0" title="0">tagIDsStr := c.PostForm("tag_ids")
+        if tagIDsStr != "" </span><span class="cov0" title="0">{
+                // Hapus tag lama
+                config.DB.Model(&amp;menu).Association("Tags").Clear()
+
+                // Tambah tag baru
+                tagIDs := strings.Split(tagIDsStr, ",")
+                if len(tagIDs) &gt; 0 </span><span class="cov0" title="0">{
+                        var tags []models.Tag
+                        config.DB.Where(tagIDs).Find(&amp;tags)
+                        if len(tags) &gt; 0 </span><span class="cov0" title="0">{
+                                config.DB.Model(&amp;menu).Association("Tags").Append(&amp;tags)
+                        }</span>
+                }
+        }
+
+        // Simpan perubahan
+        <span class="cov0" title="0">if err := config.DB.Save(&amp;menu).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui resep"})
+                return
+        }</span>
+
+        // --- TAMBAHKAN LOG ---
+        <span class="cov0" title="0">helpers.CreateLog(user.UserID, "UPDATE_MENU", menu.MenuID, "menus")
+        // ---------------------
+        // Reload data menu dengan relasi
+        config.DB.Preload("User").Preload("Tags").First(&amp;menu, menu.MenuID)
+
+
+        c.JSON(http.StatusOK, gin.H{"data": menu})</span>
+}
+
+// DeleteMenu menangani penghapusan resep oleh pemiliknya atau moderator.
+func DeleteMenu(c *gin.Context) <span class="cov8" title="1">{
+        var menu models.Menu
+        if err := config.DB.First(&amp;menu, c.Param("id")).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">user := c.MustGet("user").(models.User)
+        menuIDtoLog := menu.MenuID // Simpan ID untuk log sebelum dihapus
+
+        // --- PERBAIKAN HAK AKSES ---
+        if user.UserID != menu.UserID &amp;&amp; user.Role.RoleName != "admin" &amp;&amp; user.Role.RoleName != "editor" </span><span class="cov0" title="0">{
+                c.JSON(http.StatusForbidden, gin.H{"error": "Anda tidak memiliki akses untuk menghapus resep ini"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := config.DB.Delete(&amp;menu).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus resep"})
+                return
+        }</span>
+
+        // --- TAMBAHKAN LOG ---
+        <span class="cov8" title="1">helpers.CreateLog(user.UserID, "DELETE_MENU", menuIDtoLog, "menus")
+        // ---------------------
+
+        c.JSON(http.StatusOK, gin.H{"message": "Resep berhasil dihapus"})</span>
+}
+
+// GetPopularMenus mengambil daftar resep terpopuler.
+func GetPopularMenus(c *gin.Context) <span class="cov8" title="1">{
+        // Fetch menus dengan Preload Tags
+        var menus []models.Menu
+        if err := config.DB.Preload("Tags").Where("status = ?", "approved").Find(&amp;menus).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep populer"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">type PopularResult struct {
+                models.Menu
+                TotalLikes     int `json:"total_likes"`
+                TotalDislikes  int `json:"total_dislikes"`
+                TotalBookmarks int `json:"total_bookmarks"`
+                VoteScore      int `json:"vote_score"`
+        }
+
+        var results []PopularResult
+        for _, menu := range menus </span><span class="cov8" title="1">{
+                var totalLikes, totalDislikes int64
+                var totalBookmarks int64
+
+                // Get likes and dislikes
+                config.DB.Model(&amp;models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&amp;totalLikes)
+                config.DB.Model(&amp;models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&amp;totalDislikes)
+
+                // Get bookmarks count
+                config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&amp;totalBookmarks)
+
+                voteScore := int(totalLikes) - int(totalDislikes)
+
+                results = append(results, PopularResult{
+                        Menu:           menu,
+                        TotalLikes:     int(totalLikes),
+                        TotalDislikes:  int(totalDislikes),
+                        TotalBookmarks: int(totalBookmarks),
+                        VoteScore:      voteScore,
+                })
+        }</span>
+
+        // Sort by total_likes DESC, vote_score DESC, total_bookmarks DESC
+        // Simple bubble sort for top 10
+        <span class="cov8" title="1">for i := 0; i &lt; len(results)-1; i++ </span><span class="cov8" title="1">{
+                for j := 0; j &lt; len(results)-i-1; j++ </span><span class="cov8" title="1">{
+                        if results[j].TotalLikes &lt; results[j+1].TotalLikes ||
+                                (results[j].TotalLikes == results[j+1].TotalLikes &amp;&amp; results[j].VoteScore &lt; results[j+1].VoteScore) ||
+                                (results[j].TotalLikes == results[j+1].TotalLikes &amp;&amp; results[j].VoteScore == results[j+1].VoteScore &amp;&amp; results[j].TotalBookmarks &lt; results[j+1].TotalBookmarks) </span><span class="cov8" title="1">{
+                                results[j], results[j+1] = results[j+1], results[j]
+                        }</span>
+                }
+        }
+
+        // Limit to top 10
+        <span class="cov8" title="1">if len(results) &gt; 10 </span><span class="cov8" title="1">{
+                results = results[:10]
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": results})</span>
+}
+
+// GetMyMenus mendapatkan semua resep yang dibuat oleh user yang sedang login
+func GetMyMenus(c *gin.Context) <span class="cov0" title="0">{
+        user := c.MustGet("user").(models.User)
+
+        var menus []models.Menu
+        
+        // Gunakan GORM dengan Preload untuk mendapatkan Tags
+        if err := config.DB.Preload("Tags").Where("user_id = ?", user.UserID).Order("created_at DESC").Find(&amp;menus).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep"})
+                return
+        }</span>
+        
+        // Tambahkan stats untuk setiap menu
+        
+        <span class="cov0" title="0">type MenuWithStats struct {
+                models.Menu
+                TotalLikes     int `json:"total_likes"`
+                TotalDislikes  int `json:"total_dislikes"`
+                TotalBookmarks int `json:"total_bookmarks"`
+        }
+        
+        var results []MenuWithStats
+        for _, menu := range menus </span><span class="cov0" title="0">{
+                var totalLikes, totalDislikes int64
+                var totalBookmarks int64
+                
+                // Get likes and dislikes
+                config.DB.Model(&amp;models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&amp;totalLikes)
+                config.DB.Model(&amp;models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&amp;totalDislikes)
+                
+                // Get bookmarks count
+                config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&amp;totalBookmarks)
+                
+                results = append(results, MenuWithStats{
+                        Menu:           menu,
+                        TotalLikes:     int(totalLikes),
+                        TotalDislikes:  int(totalDislikes),
+                        TotalBookmarks: int(totalBookmarks),
+                })
+        }</span>
+        
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"data": results})</span>
+}
+
+// GetMyBookmarks mendapatkan semua resep yang di-bookmark oleh user
+func GetMyBookmarks(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+
+        // Get menu IDs yang di-bookmark
+        var bookmarkedMenuIDs []uint
+        config.DB.Table("user_bookmarks").Where("user_id = ?", user.UserID).Pluck("menu_id", &amp;bookmarkedMenuIDs)
+        
+        if len(bookmarkedMenuIDs) == 0 </span><span class="cov0" title="0">{
+                c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+                return
+        }</span>
+        
+        <span class="cov8" title="1">var menus []models.Menu
+        
+        // Gunakan GORM dengan Preload untuk mendapatkan Tags
+        if err := config.DB.Preload("Tags").Where("menu_id IN ?", bookmarkedMenuIDs).Order("created_at DESC").Find(&amp;menus).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil bookmark"})
+                return
+        }</span>
+        
+        // Tambahkan stats untuk setiap menu
+        <span class="cov8" title="1">type MenuWithStats struct {
+                models.Menu
+                TotalLikes     int `json:"total_likes"`
+                TotalDislikes  int `json:"total_dislikes"`
+                TotalBookmarks int `json:"total_bookmarks"`
+        }
+        
+        var results []MenuWithStats
+        for _, menu := range menus </span><span class="cov8" title="1">{
+                var totalLikes, totalDislikes int64
+                var totalBookmarks int64
+                
+                // Get likes and dislikes
+                config.DB.Model(&amp;models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&amp;totalLikes)
+                config.DB.Model(&amp;models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&amp;totalDislikes)
+                
+                // Get bookmarks count
+                config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&amp;totalBookmarks)
+                
+                results = append(results, MenuWithStats{
+                        Menu:           menu,
+                        TotalLikes:     int(totalLikes),
+                        TotalDislikes:  int(totalDislikes),
+                        TotalBookmarks: int(totalBookmarks),
+                })
+        }</span>
+        
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": results})</span>
+}
+
+// GetMyCollection mendapatkan gabungan resep yang dibuat user + bookmark
+func GetMyCollection(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+        
+        // Get menu IDs dari resep yang dibuat user
+        var myMenuIDs []uint
+        config.DB.Table("menus").Where("user_id = ?", user.UserID).Pluck("menu_id", &amp;myMenuIDs)
+        
+        // Get menu IDs dari bookmark
+        var bookmarkedMenuIDs []uint
+        config.DB.Table("user_bookmarks").Where("user_id = ?", user.UserID).Pluck("menu_id", &amp;bookmarkedMenuIDs)
+        
+        // Gabungkan dan deduplikasi IDs
+        menuIDMap := make(map[uint]bool)
+        for _, id := range myMenuIDs </span><span class="cov8" title="1">{
+                menuIDMap[id] = true
+        }</span>
+        <span class="cov8" title="1">for _, id := range bookmarkedMenuIDs </span><span class="cov8" title="1">{
+                menuIDMap[id] = true
+        }</span>
+        
+        <span class="cov8" title="1">var allMenuIDs []uint
+        for id := range menuIDMap </span><span class="cov8" title="1">{
+                allMenuIDs = append(allMenuIDs, id)
+        }</span>
+        
+        <span class="cov8" title="1">if len(allMenuIDs) == 0 </span><span class="cov0" title="0">{
+                c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+                return
+        }</span>
+        
+        <span class="cov8" title="1">var menus []models.Menu
+        
+        // Gunakan GORM dengan Preload untuk mendapatkan Tags
+        if err := config.DB.Preload("Tags").Where("menu_id IN ?", allMenuIDs).Order("created_at DESC").Find(&amp;menus).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil koleksi"})
+                return
+        }</span>
+        
+        // Tambahkan stats untuk setiap menu
+        <span class="cov8" title="1">type MenuWithStats struct {
+                models.Menu
+                TotalLikes     int `json:"total_likes"`
+                TotalDislikes  int `json:"total_dislikes"`
+                TotalBookmarks int `json:"total_bookmarks"`
+        }
+        
+        var results []MenuWithStats
+        for _, menu := range menus </span><span class="cov8" title="1">{
+                var totalLikes, totalDislikes int64
+                var totalBookmarks int64
+                
+                // Get likes and dislikes
+                config.DB.Model(&amp;models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&amp;totalLikes)
+                config.DB.Model(&amp;models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&amp;totalDislikes)
+                
+                // Get bookmarks count
+                config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&amp;totalBookmarks)
+                
+                results = append(results, MenuWithStats{
+                        Menu:           menu,
+                        TotalLikes:     int(totalLikes),
+                        TotalDislikes:  int(totalDislikes),
+                        TotalBookmarks: int(totalBookmarks),
+                })
+        }</span>
+        
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": results})</span>
+}</pre>
+		
+		<pre class="file" id="file6" style="display: none">package controllers
+
+import (
+        "creacipe-backend/config"
+        "creacipe-backend/models"
+        "net/http"
+        "strconv"
+
+        "github.com/gin-gonic/gin"
+)
+
+// GetMyNotifications mengambil semua notifikasi user yang login
+func GetMyNotifications(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+
+        var notifications []models.Notification
+        query := config.DB.Where("user_id = ?", user.UserID).
+                Order("created_at DESC")
+
+        // Filter by read/unread (optional)
+        if readFilter := c.Query("is_read"); readFilter != "" </span><span class="cov8" title="1">{
+                isRead := readFilter == "true"
+                query = query.Where("is_read = ?", isRead)
+        }</span>
+
+        // Pagination
+        <span class="cov8" title="1">page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+        limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+        offset := (page - 1) * limit
+
+        var total int64
+        query.Model(&amp;models.Notification{}).Count(&amp;total)
+
+        if err := query.Limit(limit).Offset(offset).Find(&amp;notifications).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil notifikasi"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{
+                "data": notifications,
+                "pagination": gin.H{
+                        "page":  page,
+                        "limit": limit,
+                        "total": total,
+                },
+        })</span>
+}
+
+// GetUnreadNotificationCount mengambil jumlah notifikasi yang belum dibaca
+func GetUnreadNotificationCount(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+
+        var count int64
+        if err := config.DB.Model(&amp;models.Notification{}).
+                Where("user_id = ? AND is_read = false", user.UserID).
+                Count(&amp;count).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghitung notifikasi"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"unread_count": count})</span>
+}
+
+// MarkNotificationAsRead menandai satu notifikasi sebagai sudah dibaca
+func MarkNotificationAsRead(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+        notifID := c.Param("id")
+
+        var notification models.Notification
+        if err := config.DB.Where("notification_id = ? AND user_id = ?", notifID, user.UserID).
+                First(&amp;notification).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Notifikasi tidak ditemukan"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := config.DB.Model(&amp;notification).Update("is_read", true).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui notifikasi"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"message": "Notifikasi ditandai sudah dibaca"})</span>
+}
+
+// MarkAllNotificationsAsRead menandai semua notifikasi user sebagai sudah dibaca
+func MarkAllNotificationsAsRead(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+
+        if err := config.DB.Model(&amp;models.Notification{}).
+                Where("user_id = ? AND is_read = false", user.UserID).
+                Update("is_read", true).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui notifikasi"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"message": "Semua notifikasi ditandai sudah dibaca"})</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">// controllers/recommendation_controller.go
+package controllers
+
+import (
+        "creacipe-backend/config"
+        "creacipe-backend/models"
+        "encoding/json"
+        "io"
+        "log" // Import log
+        "net/http"
+        "net/url" // Import untuk URL encoding
+        "strings"
+
+        "github.com/gin-gonic/gin"
+)
+
+// GetRecommendations (by Title) - Mendapatkan resep serupa.
+func GetRecommendations(c *gin.Context) <span class="cov8" title="1">{
+        // 1. Ambil menu_id dari URL.
+        menuID := c.Param("id")
+
+        // 2. Ambil title dari database berdasarkan menu_id.
+        var menu models.Menu
+        if err := config.DB.Select("title").First(&amp;menu, menuID).Error; err != nil </span><span class="cov8" title="1">{
+                log.Printf("Error finding menu title for ID %s: %v", menuID, err)
+                c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan di database"})
+                return
+        }</span>
+        <span class="cov0" title="0">title := menu.Title // GORM akan mengisi field struct dengan PascalCase
+        // log.Printf("[DEBUG] Judul ditemukan di DB: '%s'", title)
+        if title == "" </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Judul resep kosong"})
+                return
+        }</span>
+
+        // 3. Encode title agar aman dikirim di URL.
+        <span class="cov0" title="0">encodedTitle := url.PathEscape(title)
+        // log.Printf("[DEBUG] Judul diencode: '%s'", encodedTitle) // Log 3
+
+        // 4. Panggil service Python dengan endpoint /recommend/title/&lt;encoded_title&gt;.
+        pyServiceURL := "http://localhost:5000/recommend/title/" + encodedTitle
+        // log.Printf("[DEBUG] Memanggil Python service: %s", pyServiceURL) // Log 4
+        resp, err := http.Get(pyServiceURL)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("Error contacting Python service at %s: %v", pyServiceURL, err)
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghubungi service rekomendasi"})
+                return
+        }</span>
+        <span class="cov0" title="0">defer resp.Body.Close()
+
+        body, err := io.ReadAll(resp.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("Error reading Python service response body: %v", err)
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membaca respons dari service"})
+                return
+        }</span>
+
+        // Teruskan error dari Python jika ada.
+        <span class="cov0" title="0">if resp.StatusCode != http.StatusOK </span><span class="cov0" title="0">{
+                log.Printf("Python service returned status %d: %s", resp.StatusCode, string(body))
+                // log.Printf("[ERROR] Python service error (%d): %s", resp.StatusCode, string(body)) // Log 5
+                c.Data(resp.StatusCode, "application/json", body)
+                return
+        }</span>
+
+        // 5. Proses hasil (daftar JUDUL resep) dari Python.
+        <span class="cov0" title="0">var recommendedTitles []string
+        if err := json.Unmarshal(body, &amp;recommendedTitles); err != nil </span><span class="cov0" title="0">{
+                // log.Printf("[ERROR] Gagal unmarshal judul rekomendasi: %v", err) // Log 6
+                log.Printf("Error unmarshalling recommended titles: %v", err)
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memproses hasil rekomendasi (judul)"})
+                return
+        }</span>
+        // log.Printf("[DEBUG] Judul rekomendasi diterima dari Python: %v", recommendedTitles) // Log 7
+
+        // 6. Ambil detail resep lengkap dari database berdasarkan JUDUL yang direkomendasikan dengan statistik.
+        <span class="cov0" title="0">type MenuWithStats struct {
+                models.Menu
+                TotalLikes     int `json:"total_likes"`
+                TotalDislikes  int `json:"total_dislikes"`
+                TotalBookmarks int `json:"total_bookmarks"`
+        }
+        
+        var recommendedMenus []MenuWithStats
+        if len(recommendedTitles) &gt; 0 </span><span class="cov0" title="0">{
+                // log.Printf("[DEBUG] Mencari menu di DB dengan %d judul", len(recommendedTitles))
+                
+                lowercaseTitles := make([]string, len(recommendedTitles))
+                for i, title := range recommendedTitles </span><span class="cov0" title="0">{
+                        lowercaseTitles[i] = strings.ToLower(strings.TrimSpace(title))
+                }</span>
+                
+                // // Debug: print beberapa title untuk cek
+                // if len(lowercaseTitles) &gt; 0 {
+                //         log.Printf("[DEBUG] Sample lowercaseTitles[0]: '%s'", lowercaseTitles[0])
+                //         if len(lowercaseTitles) &gt; 1 {
+                //                 log.Printf("[DEBUG] Sample lowercaseTitles[1]: '%s'", lowercaseTitles[1])
+                //         }
+                // }
+                
+                // Query dengan statistik vote dan bookmark
+                <span class="cov0" title="0">query := `
+                        SELECT 
+                                m.menu_id,
+                                m.user_id,
+                                m.title,
+                                m.description,
+                                m.ingredients,
+                                m.instructions,
+                                m.image_url,
+                                m.status,
+                                m.created_at,
+                                m.updated_at,
+                                COALESCE(SUM(mv.likes_count), 0) as total_likes,
+                                COALESCE(SUM(mv.dislikes_count), 0) as total_dislikes,
+                                (SELECT COUNT(*) FROM user_bookmarks WHERE menu_id = m.menu_id) as total_bookmarks
+                        FROM menus m
+                        LEFT JOIN menu_votes mv ON m.menu_id = mv.menu_id
+                        WHERE LOWER(m.title) IN ? AND m.status = 'approved'
+                        GROUP BY m.menu_id, m.user_id, m.title, m.description, m.ingredients, m.instructions,
+                                 m.image_url, m.status, m.created_at, m.updated_at
+                `
+                
+                if err := config.DB.Raw(query, lowercaseTitles).Scan(&amp;recommendedMenus).Error; err != nil </span><span class="cov0" title="0">{
+                        log.Printf("Error fetching recommended menus by title: %v", err)
+                        c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil detail resep dari judul rekomendasi"})
+                        return
+                }</span>
+                // log.Printf("[DEBUG] Menu rekomendasi ditemukan di DB: %d dari %d judul", len(recommendedMenus), len(lowercaseTitles))
+                
+                // // Debug: Cek title yang tidak match
+                // if len(recommendedMenus) &lt; len(lowercaseTitles) {
+                //         foundTitles := make(map[string]bool)
+                //         for _, menu := range recommendedMenus {
+                //                 foundTitles[strings.ToLower(menu.Title)] = true
+                //         }
+                        
+                //         notFound := []string{}
+                //         for _, title := range lowercaseTitles[:10] { // Check first 10
+                //                 if !foundTitles[title] {
+                //                         notFound = append(notFound, title)
+                //                 }
+                //         }
+                        
+                //         if len(notFound) &gt; 0 {
+                //                 log.Printf("[DEBUG] Sample titles NOT found in DB: %v", notFound[:min(5, len(notFound))])
+                //         }
+                // }
+        } else<span class="cov0" title="0"> {
+                log.Println("Python service returned empty recommendation list.")
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"data": recommendedMenus})</span>
+}
+
+// GetPersonalRecommendations (by Titles) - Mendapatkan rekomendasi personal.
+func GetPersonalRecommendations(c *gin.Context) <span class="cov8" title="1">{
+        // 1. Ambil user yang sedang login.
+        user := c.MustGet("user").(models.User)
+
+        // 2. Ambil ID resep favorit (bookmarks &amp; likes).
+        var bookmarkedMenuIDs []uint
+        config.DB.Table("user_bookmarks").Where("user_id = ?", user.UserID).Pluck("menu_id", &amp;bookmarkedMenuIDs)
+        var likedMenuIDs []uint
+        config.DB.Table("menu_votes").Where("user_id = ? AND vote_type = ?", user.UserID, 1).Pluck("menu_id", &amp;likedMenuIDs)
+
+        favoriteMenuIDs := append(bookmarkedMenuIDs, likedMenuIDs...)
+        idMap := make(map[uint]bool)
+        uniqueIDs := []uint{}
+        for _, id := range favoriteMenuIDs </span><span class="cov0" title="0">{
+                if _, value := idMap[id]; !value </span><span class="cov0" title="0">{
+                        idMap[id] = true
+                        uniqueIDs = append(uniqueIDs, id)
+                }</span>
+        }
+
+        <span class="cov8" title="1">if len(uniqueIDs) == 0 </span><span class="cov8" title="1">{
+                c.JSON(http.StatusOK, gin.H{"data": []models.Menu{}})
+                return
+        }</span>
+
+        // 3. Ambil JUDUL dari database untuk ID favorit tersebut.
+        <span class="cov0" title="0">var favoriteTitles []string
+        if err := config.DB.Model(&amp;models.Menu{}).Where("menu_id IN ?", uniqueIDs).Pluck("title", &amp;favoriteTitles).Error; err != nil </span><span class="cov0" title="0">{
+                log.Printf("Error fetching favorite titles for user %d: %v", user.UserID, err)
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil judul resep favorit"})
+                return
+        }</span>
+        <span class="cov0" title="0">if len(favoriteTitles) == 0 </span><span class="cov0" title="0">{
+                log.Printf("No valid titles found for favorite IDs of user %d", user.UserID)
+                c.JSON(http.StatusOK, gin.H{"data": []models.Menu{}})
+                return
+        }</span>
+
+        // 4. Encode setiap judul dan gabungkan menjadi string query parameter.
+        <span class="cov0" title="0">encodedTitles := []string{}
+        for _, title := range favoriteTitles </span><span class="cov0" title="0">{
+                encodedTitles = append(encodedTitles, url.QueryEscape(title))
+        }</span>
+        <span class="cov0" title="0">titlesQueryParam := strings.Join(encodedTitles, ",")
+
+        // 5. Panggil service Python dengan endpoint /recommend/profile?titles=....
+        pyServiceURL := "http://localhost:5000/recommend/profile?titles=" + titlesQueryParam
+        resp, err := http.Get(pyServiceURL)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("Error contacting Python service at %s: %v", pyServiceURL, err)
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghubungi service rekomendasi"})
+                return
+        }</span>
+        <span class="cov0" title="0">defer resp.Body.Close()
+
+        body, err := io.ReadAll(resp.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("Error reading Python service response body: %v", err)
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membaca respons"})
+                return
+        }</span>
+        <span class="cov0" title="0">if resp.StatusCode != http.StatusOK </span><span class="cov0" title="0">{
+                log.Printf("Python service returned status %d: %s", resp.StatusCode, string(body))
+                c.Data(resp.StatusCode, "application/json", body)
+                return
+        }</span>
+
+        // 6. Proses hasil (daftar JUDUL resep) dari Python.
+        <span class="cov0" title="0">var recommendedTitles []string
+        if err := json.Unmarshal(body, &amp;recommendedTitles); err != nil </span><span class="cov0" title="0">{
+                log.Printf("Error unmarshalling recommended titles: %v", err)
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memproses hasil rekomendasi (judul)"})
+                return
+        }</span>
+
+        // 7. Ambil detail resep lengkap dari database berdasarkan JUDUL yang direkomendasikan dengan statistik.
+        <span class="cov0" title="0">type MenuWithStats struct {
+                models.Menu
+                TotalLikes     int `json:"total_likes"`
+                TotalDislikes  int `json:"total_dislikes"`
+                TotalBookmarks int `json:"total_bookmarks"`
+        }
+        
+        var recommendedMenus []MenuWithStats
+        if len(recommendedTitles) &gt; 0 </span><span class="cov0" title="0">{
+                // Convert semua recommendedTitles ke lowercase untuk matching
+                lowercaseTitles := make([]string, len(recommendedTitles))
+                for i, title := range recommendedTitles </span><span class="cov0" title="0">{
+                        lowercaseTitles[i] = strings.ToLower(strings.TrimSpace(title))
+                }</span>
+                
+                // Query dengan statistik vote dan bookmark
+                <span class="cov0" title="0">query := `
+                        SELECT 
+                                m.menu_id,
+                                m.user_id,
+                                m.title,
+                                m.description,
+                                m.ingredients,
+                                m.instructions,
+                                m.image_url,
+                                m.status,
+                                m.created_at,
+                                m.updated_at,
+                                COALESCE(SUM(mv.likes_count), 0) as total_likes,
+                                COALESCE(SUM(mv.dislikes_count), 0) as total_dislikes,
+                                (SELECT COUNT(*) FROM user_bookmarks WHERE menu_id = m.menu_id) as total_bookmarks
+                        FROM menus m
+                        LEFT JOIN menu_votes mv ON m.menu_id = mv.menu_id
+                        WHERE LOWER(m.title) IN ? AND m.status = 'approved'
+                        GROUP BY m.menu_id, m.user_id, m.title, m.description, m.ingredients, m.instructions,
+                                 m.image_url, m.status, m.created_at, m.updated_at
+                `
+                
+                if err := config.DB.Raw(query, lowercaseTitles).Scan(&amp;recommendedMenus).Error; err != nil </span><span class="cov0" title="0">{
+                        log.Printf("Error fetching recommended menus by title with stats: %v", err)
+                        c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil detail resep dari judul rekomendasi"})
+                        return
+                }</span>
+                
+                // Preload User untuk setiap menu
+                <span class="cov0" title="0">menuIDs := make([]uint, len(recommendedMenus))
+                for i, menu := range recommendedMenus </span><span class="cov0" title="0">{
+                        menuIDs[i] = menu.MenuID
+                }</span>
+                
+                <span class="cov0" title="0">var users []models.User
+                config.DB.Where("user_id IN (SELECT user_id FROM menus WHERE menu_id IN ?)", menuIDs).Find(&amp;users)
+                userMap := make(map[uint]models.User)
+                for _, u := range users </span><span class="cov0" title="0">{
+                        userMap[u.UserID] = u
+                }</span>
+                
+                <span class="cov0" title="0">for i := range recommendedMenus </span><span class="cov0" title="0">{
+                        if user, ok := userMap[recommendedMenus[i].UserID]; ok </span><span class="cov0" title="0">{
+                                recommendedMenus[i].User = user
+                        }</span>
+                }
+        } else<span class="cov0" title="0"> {
+                log.Printf("Python service returned empty recommendation list for user %d", user.UserID)
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"data": recommendedMenus})</span>
+}</pre>
+		
+		<pre class="file" id="file8" style="display: none">// controllers/reporting_controller.go
+package controllers
+
+import (
+        "creacipe-backend/config"
+        "creacipe-backend/models"
+        "net/http"
+        "time"
+
+        "github.com/gin-gonic/gin"
+)
+
+// Helper function to parse dates
+func parseDateRange(c *gin.Context) (time.Time, time.Time) <span class="cov8" title="1">{
+        // Default: last 30 days
+        endDate := time.Now()
+        startDate := endDate.AddDate(0, 0, -29) // 30 days including today
+
+        // Override with query params if they exist and are valid
+        if val, ok := c.GetQuery("startDate"); ok </span><span class="cov8" title="1">{
+                if parsed, err := time.Parse("2006-01-02", val); err == nil </span><span class="cov8" title="1">{
+                        startDate = parsed
+                }</span>
+        }
+        <span class="cov8" title="1">if val, ok := c.GetQuery("endDate"); ok </span><span class="cov8" title="1">{
+                if parsed, err := time.Parse("2006-01-02", val); err == nil </span><span class="cov8" title="1">{
+                        // To include the whole day
+                        endDate = parsed.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return startDate, endDate</span>
+}
+
+
+// GetRecipeStats provides statistics about recipe statuses (pending, approved, rejected).
+func GetRecipeStats(c *gin.Context) <span class="cov8" title="1">{
+        var pendingCount, approvedCount, rejectedCount int64
+
+        // Count recipes for each status
+        config.DB.Model(&amp;models.Menu{}).Where("status = ?", "pending").Count(&amp;pendingCount)
+        config.DB.Model(&amp;models.Menu{}).Where("status = ?", "approved").Count(&amp;approvedCount)
+        config.DB.Model(&amp;models.Menu{}).Where("status = ?", "rejected").Count(&amp;rejectedCount)
+
+        stats := gin.H{
+                "pending":  pendingCount,
+                "approved": approvedCount,
+                "rejected": rejectedCount,
+        }
+
+        c.JSON(http.StatusOK, gin.H{"data": stats})
+}</span>
+
+// GetGrowthStats provides daily counts of new users and new recipes for a given date range.
+func GetGrowthStats(c *gin.Context) <span class="cov8" title="1">{
+        startDate, endDate := parseDateRange(c)
+
+        type DailyStat struct {
+                Date       string `json:"date"`
+                NewUsers   int    `json:"new_users"`
+                NewRecipes int    `json:"new_recipes"`
+        }
+
+        // Create a map to hold stats for each day in the range
+        statsMap := make(map[string]*DailyStat)
+        for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) </span><span class="cov8" title="1">{
+                dateStr := d.Format("2006-01-02")
+                statsMap[dateStr] = &amp;DailyStat{Date: dateStr}
+        }</span>
+
+        // Query for new users per day
+        <span class="cov8" title="1">var userGrowth []struct {
+                Date  time.Time
+                Count int
+        }
+        config.DB.Model(&amp;models.User{}).
+                Select("DATE(created_at) as date, COUNT(user_id) as count").
+                Where("created_at BETWEEN ? AND ?", startDate, endDate).
+                Group("date").
+                Scan(&amp;userGrowth)
+
+        for _, stat := range userGrowth </span><span class="cov8" title="1">{
+                dateStr := stat.Date.Format("2006-01-02")
+                if entry, ok := statsMap[dateStr]; ok </span><span class="cov0" title="0">{
+                        entry.NewUsers = stat.Count
+                }</span>
+        }
+
+        // Query for new recipes per day
+        <span class="cov8" title="1">var recipeGrowth []struct {
+                Date  time.Time
+                Count int
+        }
+        config.DB.Model(&amp;models.Menu{}).
+                Select("DATE(created_at) as date, COUNT(menu_id) as count").
+                Where("created_at BETWEEN ? AND ?", startDate, endDate).
+                Group("date").
+                Scan(&amp;recipeGrowth)
+
+        for _, stat := range recipeGrowth </span><span class="cov8" title="1">{
+                dateStr := stat.Date.Format("2006-01-02")
+                if entry, ok := statsMap[dateStr]; ok </span><span class="cov0" title="0">{
+                        entry.NewRecipes = stat.Count
+                }</span>
+        }
+
+        // Convert map to a sorted slice
+        <span class="cov8" title="1">var results []DailyStat
+        for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) </span><span class="cov8" title="1">{
+                dateStr := d.Format("2006-01-02")
+                results = append(results, *statsMap[dateStr])
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": results})</span>
+}
+
+
+// GetTopTags returns the top 10 most used tags.
+func GetTopTags(c *gin.Context) <span class="cov8" title="1">{
+        type TagStat struct {
+                TagName string `json:"tag_name"`
+                Count   int    `json:"count"`
+        }
+
+        var results []TagStat
+
+        err := config.DB.Table("tags").
+                Select("tags.tag_name, COUNT(menu_tags.menu_id) as count").
+                Joins("join menu_tags on tags.tag_id = menu_tags.tag_id").
+                Group("tags.tag_name").
+                Order("count DESC").
+                Limit(10).
+                Scan(&amp;results).Error
+
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve top tags"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": results})</span>
+}
+
+// GetActivityLogStats provides daily counts of activities for a given date range.
+func GetActivityLogStats(c *gin.Context) <span class="cov8" title="1">{
+        startDate, endDate := parseDateRange(c)
+
+        type DailyActivity struct {
+                Date          string `json:"date"`
+                ActivityCount int    `json:"activity_count"`
+        }
+        
+        // Create a map to hold stats for each day in the range
+        statsMap := make(map[string]*DailyActivity)
+        for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) </span><span class="cov8" title="1">{
+                dateStr := d.Format("2006-01-02")
+                statsMap[dateStr] = &amp;DailyActivity{Date: dateStr}
+        }</span>
+
+        <span class="cov8" title="1">var dbResults []struct {
+                Date time.Time
+                ActivityCount int
+        }
+
+        err := config.DB.Model(&amp;models.LogActivity{}).
+                Select("DATE(created_at) as date, COUNT(activity_id) as activity_count").
+                Where("created_at BETWEEN ? AND ?", startDate, endDate).
+                Group("date").
+                Order("date ASC").
+                Scan(&amp;dbResults).Error
+
+        if err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve activity log stats"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">for _, res := range dbResults </span><span class="cov0" title="0">{
+                dateStr := res.Date.Format("2006-01-02")
+                if entry, ok := statsMap[dateStr]; ok </span><span class="cov0" title="0">{
+                        entry.ActivityCount = res.ActivityCount
+                }</span>
+        }
+        
+        // Convert map to a sorted slice
+        <span class="cov0" title="0">var results []DailyActivity
+        for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) </span><span class="cov0" title="0">{
+                dateStr := d.Format("2006-01-02")
+                results = append(results, *statsMap[dateStr])
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"data": results})</span>
+}
+
+
+// GetTopLikedRecipes returns the top 5 most liked recipes.
+func GetTopLikedRecipes(c *gin.Context) <span class="cov8" title="1">{
+        type RecipeStat struct {
+                Title      string `json:"title"`
+                TotalLikes int    `json:"total_likes"`
+        }
+
+        var results []RecipeStat
+
+        err := config.DB.Table("menus").
+                Select("menus.title, SUM(menu_votes.likes_count) as total_likes").
+                Joins("join menu_votes on menus.menu_id = menu_votes.menu_id").
+                Group("menus.menu_id").
+                Order("total_likes DESC").
+                Limit(5).
+                Scan(&amp;results).Error
+
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve top liked recipes"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": results})</span>
+}
+
+// GetTopBookmarkedRecipes returns the top 5 most bookmarked recipes.
+func GetTopBookmarkedRecipes(c *gin.Context) <span class="cov8" title="1">{
+        type RecipeStat struct {
+                Title          string `json:"title"`
+                TotalBookmarks int    `json:"total_bookmarks"`
+        }
+
+        var results []RecipeStat
+
+        err := config.DB.Table("menus").
+                Select("menus.title, COUNT(user_bookmarks.user_id) as total_bookmarks").
+                Joins("join user_bookmarks on menus.menu_id = user_bookmarks.menu_id").
+                Group("menus.menu_id").
+                Order("total_bookmarks DESC").
+                Limit(5).
+                Scan(&amp;results).Error
+
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve top bookmarked recipes"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": results})</span>
+}</pre>
+		
+		<pre class="file" id="file9" style="display: none">// controllers/setup_controller.go
+package controllers
+
+import (
+        "creacipe-backend/config"
+        "creacipe-backend/helpers" // &lt;-- Import helper
+        "creacipe-backend/models"
+        "net/http"
+
+        "github.com/gin-gonic/gin"
+        "golang.org/x/crypto/bcrypt"
+)
+
+// SetupFirstAdmin membuat user admin pertama, hanya bisa dijalankan sekali.
+func SetupFirstAdmin(c *gin.Context) <span class="cov0" title="0">{
+        // 1. Periksa apakah sudah ada admin di database menggunakan JOIN.
+        var userCount int64
+        config.DB.Model(&amp;models.User{}).
+                Joins("join roles on roles.role_id = users.role_id").
+                Where("roles.role_name = ?", "admin").
+                Count(&amp;userCount)
+        
+        if userCount &gt; 0 </span><span class="cov0" title="0">{
+                c.JSON(http.StatusForbidden, gin.H{"error": "Setup sudah dijalankan sebelumnya, admin sudah ada."})
+                return
+        }</span>
+
+        // 2. Validasi input JSON.
+        <span class="cov0" title="0">var input models.SetupInput
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Input tidak valid: " + err.Error()})
+                return
+        }</span>
+
+        // 3. Hash password admin.
+        <span class="cov0" title="0">hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.AdminPassword), bcrypt.DefaultCost)
+        if err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengenkripsi password"})
+                return
+        }</span>
+
+        // 4. Buat user admin baru (mengasumsikan role_id 'admin' adalah 1).
+        <span class="cov0" title="0">admin := models.User{
+                Name:     input.AdminName,
+                Email:    input.AdminEmail,
+                Password: string(hashedPassword),
+                RoleID:   1, 
+        }
+
+        // 5. Simpan admin ke database.
+        if result := config.DB.Create(&amp;admin); result.Error != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat user admin"})
+                return
+        }</span>
+
+        // --- TAMBAHAN: BUAT PROFIL KOSONG OTOMATIS ---
+        <span class="cov0" title="0">profile := models.UserProfile{UserID: admin.UserID}
+        config.DB.Create(&amp;profile)
+        // ---------------------------------------------
+
+        // --- TAMBAHKAN LOG ---
+        helpers.CreateLog(admin.UserID, "SETUP_FIRST_ADMIN", admin.UserID, "users")
+        // ---------------------
+
+        c.JSON(http.StatusCreated, gin.H{"message": "Setup berhasil! Admin pertama telah dibuat."})</span>
+}</pre>
+		
+		<pre class="file" id="file10" style="display: none">// controllers/tag_controller.go
+package controllers
+
+import (
+        "creacipe-backend/config"
+        "creacipe-backend/helpers"
+        "creacipe-backend/models"
+        "net/http"
+
+        "github.com/gin-gonic/gin"
+)
+
+// GetAllTags menampilkan semua tag beserta kategorinya.
+func GetAllTags(c *gin.Context) <span class="cov8" title="1">{
+        var tags []models.Tag
+        // Gunakan Preload("Category") untuk menyertakan detail kategori pada setiap tag.
+        if err := config.DB.Preload("Category").Find(&amp;tags).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data tag"})
+                return
+        }</span>
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": tags})</span>
+}
+
+// CreateTag membuat tag baru (hanya untuk admin/editor).
+func CreateTag(c *gin.Context) <span class="cov8" title="1">{
+        var input models.CreateTagInput
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">tag := models.Tag{
+                TagName:    input.TagName,
+                CategoryID: input.CategoryID,
+        }
+
+        if err := config.DB.Create(&amp;tag).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat tag"})
+                return
+        }</span>
+
+        // Catat aktivitas
+        <span class="cov8" title="1">user := c.MustGet("user").(models.User)
+        helpers.CreateLog(user.UserID, "CREATE_TAG", tag.TagID, "tags")
+
+        c.JSON(http.StatusCreated, gin.H{"data": tag})</span>
+}
+
+// UpdateTag mengubah tag yang ada (hanya untuk admin/editor).
+func UpdateTag(c *gin.Context) <span class="cov8" title="1">{
+        var tag models.Tag
+        if err := config.DB.First(&amp;tag, c.Param("id")).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Tag tidak ditemukan"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">var input models.UpdateTagInput
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := config.DB.Model(&amp;tag).Updates(input).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui tag"})
+                return
+        }</span>
+        
+        // Catat aktivitas
+        <span class="cov8" title="1">user := c.MustGet("user").(models.User)
+        helpers.CreateLog(user.UserID, "UPDATE_TAG", tag.TagID, "tags")
+
+        c.JSON(http.StatusOK, gin.H{"data": tag})</span>
+}
+
+// DeleteTag menghapus tag (hanya untuk admin/editor).
+func DeleteTag(c *gin.Context) <span class="cov8" title="1">{
+        var tag models.Tag
+        if err := config.DB.First(&amp;tag, c.Param("id")).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Tag tidak ditemukan"})
+                return
+        }</span>
+        
+        <span class="cov8" title="1">tagIDtoLog := tag.TagID // Simpan ID untuk log
+
+        if err := config.DB.Delete(&amp;tag).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus tag"})
+                return
+        }</span>
+
+        // Catat aktivitas
+        <span class="cov8" title="1">user := c.MustGet("user").(models.User)
+        helpers.CreateLog(user.UserID, "DELETE_TAG", tagIDtoLog, "tags")
+
+        c.JSON(http.StatusOK, gin.H{"message": "Tag berhasil dihapus"})</span>
+}</pre>
+		
+		<pre class="file" id="file11" style="display: none">// controllers/user_controller.go
+package controllers
+
+import (
+        "creacipe-backend/config"
+        "creacipe-backend/helpers" // &lt;-- 1. IMPORT HELPER
+        "creacipe-backend/models"
+        "net/http"
+        "fmt"
+        "path/filepath"
+        "time"
+
+        "github.com/gin-gonic/gin"
+        "golang.org/x/crypto/bcrypt"
+)
+
+// --- FUNGSI BARU UNTUK ADMIN ---
+
+// AdminCreateUser membuat user baru dengan peran spesifik.
+func AdminCreateUser(c *gin.Context) <span class="cov8" title="1">{
+        var input struct {
+                Name     string `json:"name" binding:"required"`
+                Email    string `json:"email" binding:"required,email"`
+                Password string `json:"password" binding:"required,min=6"`
+                RoleID   uint   `json:"role_id" binding:"required"`
+        }
+
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        // Validasi role exists
+        <span class="cov8" title="1">var role models.Role
+        if err := config.DB.First(&amp;role, input.RoleID).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Role tidak ditemukan"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+        user := models.User{
+                Name:       input.Name,
+                Email:      input.Email,
+                Password:   string(hashedPassword),
+                RoleID:     input.RoleID,
+                StatusUser: "active",
+        }
+
+        if err := config.DB.Create(&amp;user).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah terdaftar"})
+                return
+        }</span>
+
+        // Buat profil kosong otomatis
+        <span class="cov8" title="1">profile := models.UserProfile{UserID: user.UserID}
+        config.DB.Create(&amp;profile)
+
+        // Log aktivitas
+        admin := c.MustGet("user").(models.User)
+        helpers.CreateLog(admin.UserID, "CREATE_USER", user.UserID, "users")
+
+        // Reload user dengan relasi
+        config.DB.Preload("Role").First(&amp;user, user.UserID)
+
+        c.JSON(http.StatusCreated, gin.H{
+                "message": "User berhasil dibuat",
+                "data":    user,
+        })</span>
+}
+
+
+
+// UpdateUser menangani perubahan data pengguna (nama/email) oleh admin.
+func UpdateUser(c *gin.Context) <span class="cov8" title="1">{
+        var user models.User
+        if err := config.DB.First(&amp;user, c.Param("id")).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">var input struct {
+                Name     string `json:"name"`
+                Email    string `json:"email" binding:"omitempty,email"`
+                Password string `json:"password" binding:"omitempty,min=6"`
+        }
+
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        // Update fields
+        <span class="cov8" title="1">if input.Name != "" </span><span class="cov8" title="1">{
+                user.Name = input.Name
+        }</span>
+        <span class="cov8" title="1">if input.Email != "" </span><span class="cov0" title="0">{
+                user.Email = input.Email
+        }</span>
+        <span class="cov8" title="1">if input.Password != "" </span><span class="cov0" title="0">{
+                hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+                user.Password = string(hashedPassword)
+        }</span>
+
+        <span class="cov8" title="1">if err := config.DB.Save(&amp;user).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui data pengguna"})
+                return
+        }</span>
+
+        // Log aktivitas
+        <span class="cov8" title="1">admin := c.MustGet("user").(models.User)
+        helpers.CreateLog(admin.UserID, "UPDATE_USER", user.UserID, "users")
+
+        c.JSON(http.StatusOK, gin.H{
+                "message": "User berhasil diperbarui",
+                "data":    user,
+        })</span>
+}
+
+
+
+//--------------------------------------// USER PROFILE CONTROLLERS //--------------------------------------//
+
+// GetMyProfile menampilkan data lengkap dari pengguna yang sedang login.
+func GetMyProfile(c *gin.Context) <span class="cov8" title="1">{
+        userCtx, _ := c.Get("user")
+        user := userCtx.(models.User)
+
+        var userDetails models.User
+        if err := config.DB.Preload("Role").Preload("Profile").First(&amp;userDetails, user.UserID).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "User tidak ditemukan"})
+                return
+        }</span>
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": userDetails})</span>
+}
+
+// UpdateMyProfile memperbarui data profil pengguna yang sedang login.
+func UpdateMyProfile(c *gin.Context) <span class="cov8" title="1">{
+        user := c.MustGet("user").(models.User)
+        
+        // Ambil data dari form
+        name := c.PostForm("name")
+        bio := c.PostForm("bio")
+        
+        // Update nama di tabel 'users' jika ada perubahan
+        // Note: Email TIDAK bisa diubah di sini, gunakan endpoint change-email
+        if name != "" </span><span class="cov0" title="0">{
+                config.DB.Model(&amp;user).Update("name", name)
+        }</span>
+
+        // Update atau buat data di tabel 'user_profiles'
+        <span class="cov8" title="1">var profile models.UserProfile
+        config.DB.FirstOrInit(&amp;profile, models.UserProfile{UserID: user.UserID})
+        
+        // Update bio - pastikan update meskipun kosong
+        profile.Bio = bio
+        
+        // Debug log
+        fmt.Printf("Updating profile for user %d: bio='%s'\n", user.UserID, bio)
+        
+        // Handle image upload
+        file, err := c.FormFile("image_file")
+        if err == nil </span><span class="cov0" title="0">{
+                // Buat nama file unik
+                filename := fmt.Sprintf("profile_%d_%d%s", user.UserID, time.Now().Unix(), filepath.Ext(file.Filename))
+                filePath := "assets/profiles/" + filename
+                
+                // Simpan file
+                if err := c.SaveUploadedFile(file, filePath); err != nil </span><span class="cov0" title="0">{
+                        c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan gambar profil"})
+                        return
+                }</span>
+                
+                // Update profile picture URL
+                <span class="cov0" title="0">profile.ProfilePictureURL = "/" + filePath</span>
+        }
+        
+        <span class="cov8" title="1">if err := config.DB.Save(&amp;profile).Error; err != nil </span><span class="cov0" title="0">{
+                fmt.Printf("Error saving profile: %v\n", err)
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan profil"})
+                return
+        }</span>
+        
+        <span class="cov8" title="1">fmt.Printf("Profile saved successfully: bio='%s', picture='%s'\n", profile.Bio, profile.ProfilePictureURL)
+        
+        // Catat di log
+        helpers.CreateLog(user.UserID, "UPDATE_PROFILE", user.UserID, "users")
+
+        c.JSON(http.StatusOK, gin.H{"message": "Profil berhasil diperbarui"})</span>
+}
+
+//--------------------------------------// ADMIN USER MANAGEMENT //--------------------------------------//
+
+// --- FUNGSI BARU UNTUK AKTIF/NONAKTIF ---
+
+// DeactivateUser mengubah status user menjadi 'inactive'.
+func DeactivateUser(c *gin.Context) <span class="cov8" title="1">{
+        var user models.User
+        if err := config.DB.First(&amp;user, c.Param("id")).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+                return
+        }</span>
+        
+        <span class="cov8" title="1">config.DB.Model(&amp;user).Update("status_user", "inactive")
+        admin := c.MustGet("user").(models.User)
+        helpers.CreateLog(admin.UserID, "ADMIN_DEACTIVATE_USER", user.UserID, "users")
+        c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil dinonaktifkan"})</span>
+}
+
+// ActivateUser mengubah status user menjadi 'active'.
+func ActivateUser(c *gin.Context) <span class="cov8" title="1">{
+    var user models.User
+
+    // --- PERBAIKAN DI SINI ---
+    // Gunakan GORM secara langsung, ia akan otomatis mencari berdasarkan primary key 'user_id'
+        if err := config.DB.First(&amp;user, c.Param("id")).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+                return
+        }</span>
+    // -------------------------
+    
+        <span class="cov8" title="1">config.DB.Model(&amp;user).Update("status_user", "active")
+        admin := c.MustGet("user").(models.User)
+        helpers.CreateLog(admin.UserID, "ADMIN_ACTIVATE_USER", user.UserID, "users")
+        c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil diaktifkan"})</span>
+}
+
+// --- FUNGSI TAMBAHAN UNTUK DASHBOARD ADMIN ---
+
+// GetAllUsers mengambil semua pengguna dengan informasi lengkap
+func GetAllUsers(c *gin.Context) <span class="cov8" title="1">{
+        var users []models.User
+        
+        if err := config.DB.Preload("Role").Find(&amp;users).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data pengguna"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": users})</span>
+}
+
+// GetUserByID mengambil detail satu pengguna
+func GetUserByID(c *gin.Context) <span class="cov8" title="1">{
+        var user models.User
+        
+        if err := config.DB.Preload("Role").Preload("UserProfile").First(&amp;user, c.Param("id")).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": user})</span>
+}
+
+// UpdateUserRole mengubah role user (Admin only)
+func UpdateUserRole(c *gin.Context) <span class="cov8" title="1">{
+        var user models.User
+        if err := config.DB.First(&amp;user, c.Param("id")).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">var input struct {
+                RoleID uint `json:"role_id" binding:"required"`
+        }
+
+        if err := c.ShouldBindJSON(&amp;input); err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Role ID wajib diisi"})
+                return
+        }</span>
+
+        // Validasi role exists
+        <span class="cov8" title="1">var role models.Role
+        if err := config.DB.First(&amp;role, input.RoleID).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Role tidak ditemukan"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">user.RoleID = input.RoleID
+
+        if err := config.DB.Save(&amp;user).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengubah role pengguna"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">admin := c.MustGet("user").(models.User)
+        helpers.CreateLog(admin.UserID, "UPDATE_USER_ROLE", user.UserID, "users")
+
+        // Reload user dengan role
+        config.DB.Preload("Role").First(&amp;user, user.UserID)
+
+        c.JSON(http.StatusOK, gin.H{
+                "message": "Role pengguna berhasil diubah",
+                "data":    user,
+        })</span>
+}
+
+// DeleteUser menghapus user (Admin only)
+func DeleteUser(c *gin.Context) <span class="cov8" title="1">{
+        var user models.User
+        if err := config.DB.First(&amp;user, c.Param("id")).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+                return
+        }</span>
+
+        // Cek apakah user mencoba menghapus dirinya sendiri
+        <span class="cov8" title="1">currentUser := c.MustGet("user").(models.User)
+        if currentUser.UserID == user.UserID </span><span class="cov0" title="0">{
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Tidak dapat menghapus akun sendiri"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">userIDtoLog := user.UserID
+
+        if err := config.DB.Delete(&amp;user).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus pengguna"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">helpers.CreateLog(currentUser.UserID, "DELETE_USER", userIDtoLog, "users")
+
+        c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil dihapus"})</span>
+}
+
+// GetAllRoles mengambil semua role yang tersedia
+func GetAllRoles(c *gin.Context) <span class="cov8" title="1">{
+        var roles []models.Role
+        
+        if err := config.DB.Find(&amp;roles).Error; err != nil </span><span class="cov0" title="0">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data role"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"data": roles})</span>
+}
+
+// GetActivityLogs mengambil log aktivitas sistem (Admin only)
+func GetActivityLogs(c *gin.Context) <span class="cov8" title="1">{
+        var logs []models.LogActivity
+        
+        // Preload User dan Role terlebih dahulu
+        if err := config.DB.
+                Preload("User.Role").
+                Preload("User").
+                Order("created_at DESC").
+                Find(&amp;logs).Error; err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil log aktivitas"})
+                return
+        }</span>
+
+        // Preload Menu, TargetUser, Tag, dan Category secara conditional berdasarkan target_type
+        <span class="cov0" title="0">for i := range logs </span><span class="cov0" title="0">{
+                targetType := logs[i].TargetType
+                
+                if targetType == "menu" || targetType == "menus" </span><span class="cov0" title="0">{
+                        // Preload Menu untuk menu-related actions
+                        config.DB.Preload("Menu").First(&amp;logs[i], logs[i].ActivityID)
+                }</span> else<span class="cov0" title="0"> if targetType == "user" || targetType == "users" </span><span class="cov0" title="0">{
+                        // Preload TargetUser untuk user-related actions
+                        config.DB.Preload("TargetUser.Role").Preload("TargetUser").First(&amp;logs[i], logs[i].ActivityID)
+                }</span> else<span class="cov0" title="0"> if targetType == "tag" || targetType == "tags" </span><span class="cov0" title="0">{
+                        // Preload Tag untuk tag-related actions
+                        config.DB.Preload("Tag").First(&amp;logs[i], logs[i].ActivityID)
+                }</span> else<span class="cov0" title="0"> if targetType == "category" || targetType == "categories" </span><span class="cov0" title="0">{
+                        // Preload Category untuk category-related actions
+                        config.DB.Preload("Category").First(&amp;logs[i], logs[i].ActivityID)
+                }</span>
+        }
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"data": logs})</span>
+}</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
