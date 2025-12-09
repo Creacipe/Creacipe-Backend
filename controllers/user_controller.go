@@ -293,7 +293,41 @@ func UpdateUserRole(c *gin.Context) {
 	})
 }
 
-// DeleteUser menghapus user (Admin only)
+// GetUserRelatedData mengambil jumlah data terkait user sebelum delete (untuk peringatan)
+func GetUserRelatedData(c *gin.Context) {
+	userID := c.Param("id")
+
+	var user models.User
+	if err := config.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+		return
+	}
+
+	// Hitung data terkait
+	var menusCount int64
+	var commentsCount int64
+	var votesCount int64
+	var bookmarksCount int64
+
+	config.DB.Model(&models.Menu{}).Where("user_id = ?", userID).Count(&menusCount)
+	config.DB.Model(&models.Comment{}).Where("user_id = ?", userID).Count(&commentsCount)
+	config.DB.Model(&models.MenuVote{}).Where("user_id = ?", userID).Count(&votesCount)
+	config.DB.Table("user_bookmarks").Where("user_id = ?", userID).Count(&bookmarksCount)
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"user_id":         user.UserID,
+			"user_name":       user.Name,
+			"menus_count":     menusCount,
+			"comments_count":  commentsCount,
+			"votes_count":     votesCount,
+			"bookmarks_count": bookmarksCount,
+			"has_related_data": menusCount > 0 || commentsCount > 0 || votesCount > 0 || bookmarksCount > 0,
+		},
+	})
+}
+
+// DeleteUser menghapus user beserta semua data terkaitnya (Cascade Delete)
 func DeleteUser(c *gin.Context) {
 	var user models.User
 	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
@@ -308,16 +342,97 @@ func DeleteUser(c *gin.Context) {
 		return
 	}
 
-	userIDtoLog := user.UserID
+	// Cek apakah user yang akan dihapus adalah admin
+	var targetUserRole models.Role
+	config.DB.First(&targetUserRole, user.RoleID)
+	if targetUserRole.RoleName == "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Tidak dapat menghapus user dengan role admin"})
+		return
+	}
 
-	if err := config.DB.Delete(&user).Error; err != nil {
+	userIDtoLog := user.UserID
+	userIDtoDelete := user.UserID
+
+	// Mulai transaksi untuk cascade delete
+	tx := config.DB.Begin()
+
+	// 1. Hapus user_bookmarks (many-to-many junction table)
+	if err := tx.Exec("DELETE FROM user_bookmarks WHERE user_id = ?", userIDtoDelete).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus bookmark pengguna"})
+		return
+	}
+
+	// 2. Hapus menu_votes
+	if err := tx.Where("user_id = ?", userIDtoDelete).Delete(&models.MenuVote{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus votes pengguna"})
+		return
+	}
+
+	// 3. Hapus comments (termasuk replies - hapus yang parent_id nya adalah comment milik user ini juga)
+	// Hapus replies terlebih dahulu, lalu parent comments
+	if err := tx.Exec("DELETE FROM comments WHERE parent_id IN (SELECT comment_id FROM (SELECT comment_id FROM comments WHERE user_id = ?) AS subquery)", userIDtoDelete).Error; err != nil {
+		// Ignore error jika tidak ada replies
+	}
+	if err := tx.Where("user_id = ?", userIDtoDelete).Delete(&models.Comment{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus komentar pengguna"})
+		return
+	}
+
+	// 4. Hapus menus beserta relasinya
+	// 4a. Hapus menu_tags junction table
+	if err := tx.Exec("DELETE FROM menu_tags WHERE menu_id IN (SELECT menu_id FROM menus WHERE user_id = ?)", userIDtoDelete).Error; err != nil {
+		// Ignore error jika tidak ada tags
+	}
+	// 4b. Hapus comments di menu milik user ini
+	if err := tx.Exec("DELETE FROM comments WHERE menu_id IN (SELECT menu_id FROM menus WHERE user_id = ?)", userIDtoDelete).Error; err != nil {
+		// Ignore error
+	}
+	// 4c. Hapus votes di menu milik user ini
+	if err := tx.Exec("DELETE FROM menu_votes WHERE menu_id IN (SELECT menu_id FROM menus WHERE user_id = ?)", userIDtoDelete).Error; err != nil {
+		// Ignore error
+	}
+	// 4d. Hapus bookmarks ke menu milik user ini
+	if err := tx.Exec("DELETE FROM user_bookmarks WHERE menu_id IN (SELECT menu_id FROM menus WHERE user_id = ?)", userIDtoDelete).Error; err != nil {
+		// Ignore error
+	}
+	// 4e. Hapus menus
+	if err := tx.Where("user_id = ?", userIDtoDelete).Delete(&models.Menu{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus resep pengguna"})
+		return
+	}
+
+	// 5. Hapus user_profile
+	if err := tx.Where("user_id = ?", userIDtoDelete).Delete(&models.UserProfile{}).Error; err != nil {
+		// Profile mungkin tidak ada, ignore error
+	}
+
+	// 6. Hapus notifications terkait user ini (jika ada)
+	if err := tx.Exec("DELETE FROM notifications WHERE user_id = ? OR actor_id = ?", userIDtoDelete, userIDtoDelete).Error; err != nil {
+		// Ignore error jika tabel tidak ada atau tidak ada data
+	}
+
+	// 7. Hapus password_resets
+	if err := tx.Exec("DELETE FROM password_resets WHERE user_id = ?", userIDtoDelete).Error; err != nil {
+		// Ignore error
+	}
+
+	// 8. Terakhir, hapus user
+	if err := tx.Delete(&user).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus pengguna"})
 		return
 	}
 
+	// Commit transaksi
+	tx.Commit()
+
 	helpers.CreateLog(currentUser.UserID, "DELETE_USER", userIDtoLog, "users")
 
-	c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil dihapus"})
+	c.JSON(http.StatusOK, gin.H{"message": "Pengguna dan semua data terkait berhasil dihapus"})
 }
 
 // GetAllRoles mengambil semua role yang tersedia

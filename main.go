@@ -23,9 +23,9 @@ func init() {
 func main() {
 	r := gin.Default()
 	// --- Penyajian File Statis untuk Aset (Gambar, dll) ---
-	os.MkdirAll("./assets", os.ModePerm) 
+	os.MkdirAll("./assets", os.ModePerm)
 	// Sajikan folder 'assets' di URL '/assets'
-	r.Static("/assets", "./assets") 
+	r.Static("/assets", "./assets")
 	// ---------------------------------
 
 	r.Use(config.CORSMiddleware())
@@ -96,15 +96,15 @@ func main() {
 				editorRoutes.GET("/menus/pending", controllers.GetPendingMenus)
 				editorRoutes.PATCH("/menus/:id/status", controllers.UpdateMenuStatus)
 				editorRoutes.POST("/tags", controllers.CreateTag)
-        editorRoutes.PUT("/tags/:id", controllers.UpdateTag)
-        editorRoutes.DELETE("/tags/:id", controllers.DeleteTag)
+				editorRoutes.PUT("/tags/:id", controllers.UpdateTag)
+				editorRoutes.DELETE("/tags/:id", controllers.DeleteTag)
 				editorRoutes.DELETE("/menus/:id", controllers.DeleteMenu)
 
 				// --- manajemen kategori ---
-        editorRoutes.POST("/categories", controllers.CreateCategory)
-        editorRoutes.PUT("/categories/:id", controllers.UpdateCategory)
-        editorRoutes.DELETE("/categories/:id", controllers.DeleteCategory)
-        // ------------------------------------------
+				editorRoutes.POST("/categories", controllers.CreateCategory)
+				editorRoutes.PUT("/categories/:id", controllers.UpdateCategory)
+				editorRoutes.DELETE("/categories/:id", controllers.DeleteCategory)
+				// ------------------------------------------
 			}
 
 			// Rute Manajemen User (Hanya Admin)
@@ -121,6 +121,7 @@ func main() {
 				adminRoutes.PATCH("/users/:id/role", controllers.UpdateUserRole)
 				adminRoutes.PATCH("/users/:id/deactivate", controllers.DeactivateUser)
 				adminRoutes.PATCH("/users/:id/activate", controllers.ActivateUser)
+				adminRoutes.GET("/users/:id/related-data", controllers.GetUserRelatedData)
 				adminRoutes.DELETE("/users/:id", controllers.DeleteUser)
 				// Log Aktivitas
 				adminRoutes.GET("/logs", controllers.GetActivityLogs)
