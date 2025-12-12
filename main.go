@@ -111,9 +111,11 @@ func main() {
 			adminRoutes := auth.Group("/admin")
 			adminRoutes.Use(middlewares.AuthorizeRole("admin"))
 			{
-				// Dashboard Stats (Admin dapat akses semua stats termasuk user)
-				adminRoutes.GET("/dashboard/stats", controllers.GetDashboardStats)
-				// Manajemen User
+			// Dashboard Stats (Admin dapat akses semua stats termasuk user)
+			adminRoutes.GET("/dashboard/stats", controllers.GetDashboardStats)
+			// Real-time evaluation logs
+			adminRoutes.GET("/evaluation/logs", controllers.GetEvaluationLogs)
+			// Manajemen User
 				adminRoutes.POST("/users", controllers.AdminCreateUser)
 				adminRoutes.GET("/users", controllers.GetAllUsers)
 				adminRoutes.GET("/users/:id", controllers.GetUserByID)

@@ -18,16 +18,18 @@ import (
 func GetRecommendations(c *gin.Context) {
 	// 1. Ambil menu_id dari URL.
 	menuID := c.Param("id")
+	log.Printf("[DEBUG-REC] ====== START GetRecommendations for menu_id=%s ======", menuID)
 
 	// 2. Ambil title dari database berdasarkan menu_id.
 	var menu models.Menu
 	if err := config.DB.Select("title").First(&menu, menuID).Error; err != nil {
-		log.Printf("Error finding menu title for ID %s: %v", menuID, err)
+		log.Printf("[DEBUG-REC] Error finding menu title for ID %s: %v", menuID, err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Resep tidak ditemukan di database"})
 		return
 	}
-	title := menu.Title // GORM akan mengisi field struct dengan PascalCase
-	// log.Printf("[DEBUG] Judul ditemukan di DB: '%s'", title)
+	title := menu.Title
+	log.Printf("[DEBUG-REC] Title dari DB: '%s'", title)
+	
 	if title == "" {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Judul resep kosong"})
 		return
@@ -35,14 +37,15 @@ func GetRecommendations(c *gin.Context) {
 
 	// 3. Encode title agar aman dikirim di URL.
 	encodedTitle := url.PathEscape(title)
-	// log.Printf("[DEBUG] Judul diencode: '%s'", encodedTitle) // Log 3
+	log.Printf("[DEBUG-REC] Title encoded: '%s'", encodedTitle)
 
 	// 4. Panggil service Python dengan endpoint /recommend/title/<encoded_title>.
 	pyServiceURL := "http://localhost:5000/recommend/title/" + encodedTitle
-	// log.Printf("[DEBUG] Memanggil Python service: %s", pyServiceURL) // Log 4
+	log.Printf("[DEBUG-REC] Calling Python service: %s", pyServiceURL)
+	
 	resp, err := http.Get(pyServiceURL)
 	if err != nil {
-		log.Printf("Error contacting Python service at %s: %v", pyServiceURL, err)
+		log.Printf("[DEBUG-REC] Error contacting Python service: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghubungi service rekomendasi"})
 		return
 	}
@@ -50,15 +53,17 @@ func GetRecommendations(c *gin.Context) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("Error reading Python service response body: %v", err)
+		log.Printf("[DEBUG-REC] Error reading response: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membaca respons dari service"})
 		return
 	}
+	
+	log.Printf("[DEBUG-REC] Python response status: %d", resp.StatusCode)
+	log.Printf("[DEBUG-REC] Python response body: %s", string(body))
 
 	// Teruskan error dari Python jika ada.
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("Python service returned status %d: %s", resp.StatusCode, string(body))
-		// log.Printf("[ERROR] Python service error (%d): %s", resp.StatusCode, string(body)) // Log 5
+		log.Printf("[DEBUG-REC] Python returned error: %s", string(body))
 		c.Data(resp.StatusCode, "application/json", body)
 		return
 	}
@@ -66,12 +71,16 @@ func GetRecommendations(c *gin.Context) {
 	// 5. Proses hasil (daftar JUDUL resep) dari Python.
 	var recommendedTitles []string
 	if err := json.Unmarshal(body, &recommendedTitles); err != nil {
-		// log.Printf("[ERROR] Gagal unmarshal judul rekomendasi: %v", err) // Log 6
-		log.Printf("Error unmarshalling recommended titles: %v", err)
+		log.Printf("[DEBUG-REC] Error unmarshalling: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memproses hasil rekomendasi (judul)"})
 		return
 	}
-	// log.Printf("[DEBUG] Judul rekomendasi diterima dari Python: %v", recommendedTitles) // Log 7
+	log.Printf("[DEBUG-REC] Titles dari Python: %d items", len(recommendedTitles))
+	for i, t := range recommendedTitles {
+		if i < 5 { // Log first 5
+			log.Printf("[DEBUG-REC]   [%d] '%s'", i, t)
+		}
+	}
 
 	// 6. Ambil detail resep lengkap dari database berdasarkan JUDUL yang direkomendasikan dengan statistik.
 	type MenuWithStats struct {
@@ -83,20 +92,17 @@ func GetRecommendations(c *gin.Context) {
 	
 	var recommendedMenus []MenuWithStats
 	if len(recommendedTitles) > 0 {
-		// log.Printf("[DEBUG] Mencari menu di DB dengan %d judul", len(recommendedTitles))
-		
 		lowercaseTitles := make([]string, len(recommendedTitles))
 		for i, title := range recommendedTitles {
 			lowercaseTitles[i] = strings.ToLower(strings.TrimSpace(title))
 		}
 		
-		// // Debug: print beberapa title untuk cek
-		// if len(lowercaseTitles) > 0 {
-		// 	log.Printf("[DEBUG] Sample lowercaseTitles[0]: '%s'", lowercaseTitles[0])
-		// 	if len(lowercaseTitles) > 1 {
-		// 		log.Printf("[DEBUG] Sample lowercaseTitles[1]: '%s'", lowercaseTitles[1])
-		// 	}
-		// }
+		log.Printf("[DEBUG-REC] Searching DB with %d lowercase titles", len(lowercaseTitles))
+		for i, t := range lowercaseTitles {
+			if i < 5 { // Log first 5
+				log.Printf("[DEBUG-REC]   Search[%d]: '%s'", i, t)
+			}
+		}
 		
 		// Query dengan statistik vote dan bookmark
 		query := `
@@ -122,34 +128,46 @@ func GetRecommendations(c *gin.Context) {
 		`
 		
 		if err := config.DB.Raw(query, lowercaseTitles).Scan(&recommendedMenus).Error; err != nil {
-			log.Printf("Error fetching recommended menus by title: %v", err)
+			log.Printf("[DEBUG-REC] DB Query Error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil detail resep dari judul rekomendasi"})
 			return
 		}
-		// log.Printf("[DEBUG] Menu rekomendasi ditemukan di DB: %d dari %d judul", len(recommendedMenus), len(lowercaseTitles))
 		
-		// // Debug: Cek title yang tidak match
-		// if len(recommendedMenus) < len(lowercaseTitles) {
-		// 	foundTitles := make(map[string]bool)
-		// 	for _, menu := range recommendedMenus {
-		// 		foundTitles[strings.ToLower(menu.Title)] = true
-		// 	}
+		log.Printf("[DEBUG-REC] Found in DB: %d menus (dari %d titles)", len(recommendedMenus), len(lowercaseTitles))
+		for i, m := range recommendedMenus {
+			if i < 5 {
+				log.Printf("[DEBUG-REC]   Found[%d]: ID=%d, Title='%s'", i, m.MenuID, m.Title)
+			}
+		}
+		
+		// Debug: Cek title yang tidak match
+		if len(recommendedMenus) < len(lowercaseTitles) {
+			foundTitles := make(map[string]bool)
+			for _, menu := range recommendedMenus {
+				foundTitles[strings.ToLower(menu.Title)] = true
+			}
 			
-		// 	notFound := []string{}
-		// 	for _, title := range lowercaseTitles[:10] { // Check first 10
-		// 		if !foundTitles[title] {
-		// 			notFound = append(notFound, title)
-		// 		}
-		// 	}
+			notFound := []string{}
+			for _, title := range lowercaseTitles {
+				if !foundTitles[title] {
+					notFound = append(notFound, title)
+				}
+			}
 			
-		// 	if len(notFound) > 0 {
-		// 		log.Printf("[DEBUG] Sample titles NOT found in DB: %v", notFound[:min(5, len(notFound))])
-		// 	}
-		// }
+			if len(notFound) > 0 {
+				log.Printf("[DEBUG-REC] ⚠️ NOT FOUND in DB (%d items):", len(notFound))
+				for i, t := range notFound {
+					if i < 10 {
+						log.Printf("[DEBUG-REC]   Missing[%d]: '%s'", i, t)
+					}
+				}
+			}
+		}
 	} else {
-		log.Println("Python service returned empty recommendation list.")
+		log.Println("[DEBUG-REC] Python returned empty list")
 	}
 
+	log.Printf("[DEBUG-REC] ====== END: Returning %d recommendations ======", len(recommendedMenus))
 	c.JSON(http.StatusOK, gin.H{"data": recommendedMenus})
 }
 
@@ -297,4 +315,30 @@ func GetPersonalRecommendations(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": recommendedMenus})
+}
+
+// GetEvaluationLogs - Endpoint untuk mengambil log evaluasi real-time.
+func GetEvaluationLogs(c *gin.Context) {
+	// 1. Ambil parameter limit dari query string (opsional)
+	limit := c.DefaultQuery("limit", "50")
+	
+	// 2. Panggil endpoint logs di ML Service Python
+	pyServiceURL := "http://localhost:5000/admin/logs?limit=" + limit
+	
+	resp, err := http.Get(pyServiceURL)
+	if err != nil {
+		log.Printf("Error contacting Python logs service: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghubungi service evaluasi"})
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membaca respons logs"})
+		return
+	}
+
+	// 3. Forward respons langsung ke Frontend
+	c.Data(resp.StatusCode, "application/json", body)
 }
