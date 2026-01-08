@@ -3,11 +3,13 @@ package controllers
 
 import (
 	"creacipe-backend/config"
-	"creacipe-backend/helpers" // <-- 1. IMPORT HELPER
+	"creacipe-backend/helpers"
 	"creacipe-backend/models"
-	"net/http"
 	"fmt"
-	"path/filepath"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -157,21 +159,27 @@ func UpdateMyProfile(c *gin.Context) {
 	// Debug log
 	fmt.Printf("Updating profile for user %d: bio='%s'\n", user.UserID, bio)
 	
-	// Handle image upload
+	// Handle image upload ke ImageKit
 	file, err := c.FormFile("image_file")
 	if err == nil {
-		// Buat nama file unik
-		filename := fmt.Sprintf("profile_%d_%d%s", user.UserID, time.Now().Unix(), filepath.Ext(file.Filename))
-		filePath := "assets/profiles/" + filename
-		
-		// Simpan file
-		if err := c.SaveUploadedFile(file, filePath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan gambar profil"})
+		// Buka file untuk upload
+		fileContent, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membaca file"})
 			return
 		}
-		
+		defer fileContent.Close()
+
+		// Upload ke ImageKit
+		imageURL, err := helpers.UploadToImageKit(fileContent, file, "profiles")
+		if err != nil {
+			log.Printf("ImageKit upload error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal upload gambar profil ke ImageKit"})
+			return
+		}
+
 		// Update profile picture URL
-		profile.ProfilePictureURL = "/" + filePath
+		profile.ProfilePictureURL = imageURL
 	}
 	
 	if err := config.DB.Save(&profile).Error; err != nil {
@@ -447,38 +455,91 @@ func GetAllRoles(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": roles})
 }
 
-// GetActivityLogs mengambil log aktivitas sistem (Admin only)
+// GetActivityLogs mengambil log aktivitas sistem dengan pagination (Admin only)
 func GetActivityLogs(c *gin.Context) {
-	var logs []models.LogActivity
+	// Pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	search := strings.TrimSpace(c.Query("search"))
+	dateFilter := c.Query("date_filter") // today, week, month, year, custom
+	startDate := c.Query("start_date")
+	endDate := c.Query("end_date")
 	
-	// Preload User dan Role terlebih dahulu
-	if err := config.DB.
-		Preload("User.Role").
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+	
+	var logs []models.LogActivity
+	var total int64
+	
+	// Build query
+	query := config.DB.Model(&models.LogActivity{})
+	
+	// Apply date filter
+	now := time.Now()
+	switch dateFilter {
+	case "today":
+		startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		query = query.Where("created_at >= ?", startOfDay)
+	case "week":
+		query = query.Where("created_at >= ?", now.AddDate(0, 0, -7))
+	case "month":
+		query = query.Where("created_at >= ?", now.AddDate(0, -1, 0))
+	case "year":
+		query = query.Where("created_at >= ?", now.AddDate(-1, 0, 0))
+	case "custom":
+		if startDate != "" {
+			query = query.Where("created_at >= ?", startDate)
+		}
+		if endDate != "" {
+			query = query.Where("created_at <= ?", endDate+" 23:59:59")
+		}
+	}
+	
+	// Apply search filter (case-insensitive search in action or target_type)
+	// Also search in user name via subquery
+	if search != "" {
+		searchLower := "%" + strings.ToLower(search) + "%"
+		query = query.Where(
+			"LOWER(action) LIKE ? OR LOWER(target_type) LIKE ? OR user_id IN (SELECT user_id FROM users WHERE LOWER(name) LIKE ?)",
+			searchLower, searchLower, searchLower,
+		)
+	}
+	
+	// Get count (only for filtered queries to avoid full scan)
+	query.Count(&total)
+	
+	// Fetch logs with pagination
+	if err := query.
 		Preload("User").
 		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
 		Find(&logs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil log aktivitas"})
 		return
 	}
-
-	// Preload Menu, TargetUser, Tag, dan Category secara conditional berdasarkan target_type
-	for i := range logs {
-		targetType := logs[i].TargetType
-		
-		if targetType == "menu" || targetType == "menus" {
-			// Preload Menu untuk menu-related actions
-			config.DB.Preload("Menu").First(&logs[i], logs[i].ActivityID)
-		} else if targetType == "user" || targetType == "users" {
-			// Preload TargetUser untuk user-related actions
-			config.DB.Preload("TargetUser.Role").Preload("TargetUser").First(&logs[i], logs[i].ActivityID)
-		} else if targetType == "tag" || targetType == "tags" {
-			// Preload Tag untuk tag-related actions
-			config.DB.Preload("Tag").First(&logs[i], logs[i].ActivityID)
-		} else if targetType == "category" || targetType == "categories" {
-			// Preload Category untuk category-related actions
-			config.DB.Preload("Category").First(&logs[i], logs[i].ActivityID)
+	
+	// Calculate total pages
+	totalPages := 1
+	if total > 0 {
+		totalPages = int(total) / limit
+		if int(total)%limit > 0 {
+			totalPages++
 		}
 	}
-
-	c.JSON(http.StatusOK, gin.H{"data": logs})
+	
+	c.JSON(http.StatusOK, gin.H{
+		"data": logs,
+		"pagination": gin.H{
+			"current_page": page,
+			"total_pages":  totalPages,
+			"total_items":  total,
+			"limit":        limit,
+		},
+	})
 }

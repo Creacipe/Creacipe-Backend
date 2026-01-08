@@ -3,10 +3,11 @@ package controllers
 
 import (
 	"creacipe-backend/config"
-	"creacipe-backend/helpers" // <-- IMPORT HELPER
+	"creacipe-backend/helpers"
 	"creacipe-backend/models"
+	"log"
 	"net/http"
-	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -34,17 +35,21 @@ func CreateMenu(c *gin.Context) {
 		return
 	}
 
-	// Upload file ke folder assets
-	slug := helpers.Slugify(title)
-	ext := filepath.Ext(file.Filename)
-	uniqueFilename := helpers.FindUniqueFilename(slug, ext)
-	savePath := filepath.Join("assets", uniqueFilename)
-
-	if err := c.SaveUploadedFile(file, savePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan file"})
+	// Upload file ke ImageKit
+	fileContent, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membaca file"})
 		return
 	}
-	finalImageURL = "http://localhost:8080/assets/" + uniqueFilename
+	defer fileContent.Close()
+
+	imageURL, err := helpers.UploadToImageKit(fileContent, file, "menus")
+	if err != nil {
+		log.Printf("ImageKit upload error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal upload gambar ke ImageKit"})
+		return
+	}
+	finalImageURL = imageURL
 
 	// 4. Buat struct Menu untuk disimpan
 	menu := models.Menu{
@@ -89,15 +94,104 @@ func CreateMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": menu})
 }
 
-// GetAllMenus mengambil daftar semua resep yang sudah disetujui.
+// GetAllMenus mengambil daftar semua resep yang sudah disetujui dengan pagination dan search.
 func GetAllMenus(c *gin.Context) {
+	// Get pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	search := c.Query("search")
+	
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	// Build base query
+	baseQuery := config.DB.Model(&models.Menu{}).Where("status = ?", "approved")
+	
+	// Apply search filter if provided (case-insensitive)
+	if search != "" {
+		searchLower := "%" + strings.ToLower(search) + "%"
+		baseQuery = baseQuery.Where(
+			"LOWER(title) LIKE ? OR LOWER(description) LIKE ?",
+			searchLower, searchLower,
+		)
+	}
+
+	// Get total count with search filter
+	var total int64
+	baseQuery.Count(&total)
+
+	// Fetch menus with pagination and search
 	var menus []models.Menu
-	if err := config.DB.Preload("User").Preload("Tags").Where("status = ?", "approved").Find(&menus).Error; err != nil {
+	fetchQuery := config.DB.Preload("User").Preload("Tags").
+		Where("status = ?", "approved")
+	
+	if search != "" {
+		searchLower := "%" + strings.ToLower(search) + "%"
+		fetchQuery = fetchQuery.Where(
+			"LOWER(title) LIKE ? OR LOWER(description) LIKE ?",
+			searchLower, searchLower,
+		)
+	}
+	
+	if err := fetchQuery.Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&menus).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep"})
 		return
 	}
 
-	// Tambahkan stats untuk setiap menu
+	// Collect menu IDs for batch query
+	menuIDs := make([]uint, len(menus))
+	for i, menu := range menus {
+		menuIDs[i] = menu.MenuID
+	}
+
+	// Batch query for votes stats
+	type VoteStat struct {
+		MenuID        uint
+		TotalLikes    int
+		TotalDislikes int
+	}
+	var voteStats []VoteStat
+	if len(menuIDs) > 0 {
+		config.DB.Table("menu_votes").
+			Select("menu_id, IFNULL(SUM(likes_count), 0) as total_likes, IFNULL(SUM(dislikes_count), 0) as total_dislikes").
+			Where("menu_id IN ?", menuIDs).
+			Group("menu_id").
+			Scan(&voteStats)
+	}
+	
+	// Batch query for bookmark counts
+	type BookmarkStat struct {
+		MenuID         uint
+		TotalBookmarks int
+	}
+	var bookmarkStats []BookmarkStat
+	if len(menuIDs) > 0 {
+		config.DB.Table("user_bookmarks").
+			Select("menu_id, COUNT(*) as total_bookmarks").
+			Where("menu_id IN ?", menuIDs).
+			Group("menu_id").
+			Scan(&bookmarkStats)
+	}
+
+	// Create maps for quick lookup
+	voteMap := make(map[uint]VoteStat)
+	for _, vs := range voteStats {
+		voteMap[vs.MenuID] = vs
+	}
+	bookmarkMap := make(map[uint]int)
+	for _, bs := range bookmarkStats {
+		bookmarkMap[bs.MenuID] = bs.TotalBookmarks
+	}
+
+	// Build results with stats
 	type MenuWithStats struct {
 		models.Menu
 		TotalLikes     int `json:"total_likes"`
@@ -107,24 +201,29 @@ func GetAllMenus(c *gin.Context) {
 
 	var results []MenuWithStats
 	for _, menu := range menus {
-		var totalLikes, totalDislikes, totalBookmarks int64
-
-		// Get likes and dislikes count
-		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&totalLikes)
-		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&totalDislikes)
-
-		// Get bookmarks count
-		config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&totalBookmarks)
-
+		vs := voteMap[menu.MenuID]
 		results = append(results, MenuWithStats{
 			Menu:           menu,
-			TotalLikes:     int(totalLikes),
-			TotalDislikes:  int(totalDislikes),
-			TotalBookmarks: int(totalBookmarks),
+			TotalLikes:     vs.TotalLikes,
+			TotalDislikes:  vs.TotalDislikes,
+			TotalBookmarks: bookmarkMap[menu.MenuID],
 		})
 	}
+
+	totalPages := int(total) / limit
+	if int(total)%limit > 0 {
+		totalPages++
+	}
 	
-	c.JSON(http.StatusOK, gin.H{"data": results})
+	c.JSON(http.StatusOK, gin.H{
+		"data": results,
+		"meta": gin.H{
+			"total":       total,
+			"page":        page,
+			"limit":       limit,
+			"total_pages": totalPages,
+		},
+	})
 }
 
 // GetMenuByID mengambil detail satu resep berdasarkan ID (jika sudah disetujui).
@@ -210,17 +309,21 @@ func UpdateMenu(c *gin.Context) {
 	// Proses upload file jika ada
 	file, err := c.FormFile("image_file")
 	if err == nil {
-		// Ada file baru diupload
-		slug := helpers.Slugify(title)
-		ext := filepath.Ext(file.Filename)
-		uniqueFilename := helpers.FindUniqueFilename(slug, ext)
-		savePath := filepath.Join("assets", uniqueFilename)
-
-		if err := c.SaveUploadedFile(file, savePath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan file"})
+		// Ada file baru diupload - upload ke ImageKit
+		fileContent, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membaca file"})
 			return
 		}
-		menu.ImageURL = "http://localhost:8080/assets/" + uniqueFilename
+		defer fileContent.Close()
+
+		imageURL, err := helpers.UploadToImageKit(fileContent, file, "menus")
+		if err != nil {
+			log.Printf("ImageKit upload error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal upload gambar ke ImageKit"})
+			return
+		}
+		menu.ImageURL = imageURL
 	}
 
 	// Update tags jika ada
@@ -285,13 +388,78 @@ func DeleteMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Resep berhasil dihapus"})
 }
 
-// GetPopularMenus mengambil daftar resep terpopuler.
+// GetPopularMenus mengambil daftar resep terpopuler dengan pagination.
 func GetPopularMenus(c *gin.Context) {
-	// Fetch menus dengan Preload Tags
+	// Get pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	// Get total count
+	var total int64
+	config.DB.Model(&models.Menu{}).Where("status = ?", "approved").Count(&total)
+
+	// Fetch menus with pagination
 	var menus []models.Menu
-	if err := config.DB.Preload("Tags").Where("status = ?", "approved").Find(&menus).Error; err != nil {
+	if err := config.DB.Preload("Tags").
+		Where("status = ?", "approved").
+		Limit(limit).
+		Offset(offset).
+		Find(&menus).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep populer"})
 		return
+	}
+
+	// Collect menu IDs for batch query
+	menuIDs := make([]uint, len(menus))
+	for i, menu := range menus {
+		menuIDs[i] = menu.MenuID
+	}
+
+	// Batch query for votes stats
+	type VoteStat struct {
+		MenuID        uint
+		TotalLikes    int
+		TotalDislikes int
+	}
+	var voteStats []VoteStat
+	if len(menuIDs) > 0 {
+		config.DB.Table("menu_votes").
+			Select("menu_id, IFNULL(SUM(likes_count), 0) as total_likes, IFNULL(SUM(dislikes_count), 0) as total_dislikes").
+			Where("menu_id IN ?", menuIDs).
+			Group("menu_id").
+			Scan(&voteStats)
+	}
+
+	// Batch query for bookmark counts
+	type BookmarkStat struct {
+		MenuID         uint
+		TotalBookmarks int
+	}
+	var bookmarkStats []BookmarkStat
+	if len(menuIDs) > 0 {
+		config.DB.Table("user_bookmarks").
+			Select("menu_id, COUNT(*) as total_bookmarks").
+			Where("menu_id IN ?", menuIDs).
+			Group("menu_id").
+			Scan(&bookmarkStats)
+	}
+
+	// Create maps for quick lookup
+	voteMap := make(map[uint]VoteStat)
+	for _, vs := range voteStats {
+		voteMap[vs.MenuID] = vs
+	}
+	bookmarkMap := make(map[uint]int)
+	for _, bs := range bookmarkStats {
+		bookmarkMap[bs.MenuID] = bs.TotalBookmarks
 	}
 
 	type PopularResult struct {
@@ -304,29 +472,19 @@ func GetPopularMenus(c *gin.Context) {
 
 	var results []PopularResult
 	for _, menu := range menus {
-		var totalLikes, totalDislikes int64
-		var totalBookmarks int64
-
-		// Get likes and dislikes
-		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&totalLikes)
-		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&totalDislikes)
-
-		// Get bookmarks count
-		config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&totalBookmarks)
-
-		voteScore := int(totalLikes) - int(totalDislikes)
+		vs := voteMap[menu.MenuID]
+		voteScore := vs.TotalLikes - vs.TotalDislikes
 
 		results = append(results, PopularResult{
 			Menu:           menu,
-			TotalLikes:     int(totalLikes),
-			TotalDislikes:  int(totalDislikes),
-			TotalBookmarks: int(totalBookmarks),
+			TotalLikes:     vs.TotalLikes,
+			TotalDislikes:  vs.TotalDislikes,
+			TotalBookmarks: bookmarkMap[menu.MenuID],
 			VoteScore:      voteScore,
 		})
 	}
 
 	// Sort by total_likes DESC, vote_score DESC, total_bookmarks DESC
-	// Simple bubble sort for top 10
 	for i := 0; i < len(results)-1; i++ {
 		for j := 0; j < len(results)-i-1; j++ {
 			if results[j].TotalLikes < results[j+1].TotalLikes ||
@@ -337,28 +495,112 @@ func GetPopularMenus(c *gin.Context) {
 		}
 	}
 
-	// Limit to top 10
-	if len(results) > 10 {
-		results = results[:10]
+	totalPages := int(total) / limit
+	if int(total)%limit > 0 {
+		totalPages++
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": results})
+	c.JSON(http.StatusOK, gin.H{
+		"data": results,
+		"meta": gin.H{
+			"total":       total,
+			"page":        page,
+			"limit":       limit,
+			"total_pages": totalPages,
+		},
+	})
 }
 
-// GetMyMenus mendapatkan semua resep yang dibuat oleh user yang sedang login
+// GetMyMenus mendapatkan semua resep yang dibuat oleh user yang sedang login dengan pagination
 func GetMyMenus(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
+	// Pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
+	search := strings.TrimSpace(c.Query("search"))
+	
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 50 {
+		limit = 12
+	}
+	offset := (page - 1) * limit
+
+	// Build query
+	query := config.DB.Model(&models.Menu{}).Where("user_id = ?", user.UserID)
+	
+	// Search filter (case-insensitive)
+	if search != "" {
+		searchLower := "%" + strings.ToLower(search) + "%"
+		query = query.Where("LOWER(title) LIKE ? OR LOWER(description) LIKE ?", searchLower, searchLower)
+	}
+	
+	// Get total count
+	var total int64
+	query.Count(&total)
+
 	var menus []models.Menu
 	
-	// Gunakan GORM dengan Preload untuk mendapatkan Tags
-	if err := config.DB.Preload("Tags").Where("user_id = ?", user.UserID).Order("created_at DESC").Find(&menus).Error; err != nil {
+	// Build menu query with pagination
+	menuQuery := config.DB.Preload("Tags").Where("user_id = ?", user.UserID)
+	if search != "" {
+		searchLower := "%" + strings.ToLower(search) + "%"
+		menuQuery = menuQuery.Where("LOWER(title) LIKE ? OR LOWER(description) LIKE ?", searchLower, searchLower)
+	}
+	
+	if err := menuQuery.Order("created_at DESC").Limit(limit).Offset(offset).Find(&menus).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep"})
 		return
 	}
 	
-	// Tambahkan stats untuk setiap menu
+	// Collect menu IDs for batch stats query
+	var menuIDs []uint
+	for _, menu := range menus {
+		menuIDs = append(menuIDs, menu.MenuID)
+	}
 	
+	// Batch query for votes stats
+	type VoteStat struct {
+		MenuID        uint
+		TotalLikes    int
+		TotalDislikes int
+	}
+	var voteStats []VoteStat
+	if len(menuIDs) > 0 {
+		config.DB.Table("menu_votes").
+			Select("menu_id, IFNULL(SUM(likes_count), 0) as total_likes, IFNULL(SUM(dislikes_count), 0) as total_dislikes").
+			Where("menu_id IN ?", menuIDs).
+			Group("menu_id").
+			Scan(&voteStats)
+	}
+
+	// Batch query for bookmark counts
+	type BookmarkStat struct {
+		MenuID         uint
+		TotalBookmarks int
+	}
+	var bookmarkStats []BookmarkStat
+	if len(menuIDs) > 0 {
+		config.DB.Table("user_bookmarks").
+			Select("menu_id, COUNT(*) as total_bookmarks").
+			Where("menu_id IN ?", menuIDs).
+			Group("menu_id").
+			Scan(&bookmarkStats)
+	}
+
+	// Create maps for quick lookup
+	voteMap := make(map[uint]VoteStat)
+	for _, v := range voteStats {
+		voteMap[v.MenuID] = v
+	}
+	bookmarkMap := make(map[uint]int)
+	for _, b := range bookmarkStats {
+		bookmarkMap[b.MenuID] = b.TotalBookmarks
+	}
+	
+	// Build results with stats
 	type MenuWithStats struct {
 		models.Menu
 		TotalLikes     int `json:"total_likes"`
@@ -368,49 +610,132 @@ func GetMyMenus(c *gin.Context) {
 	
 	var results []MenuWithStats
 	for _, menu := range menus {
-		var totalLikes, totalDislikes int64
-		var totalBookmarks int64
-		
-		// Get likes and dislikes
-		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&totalLikes)
-		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&totalDislikes)
-		
-		// Get bookmarks count
-		config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&totalBookmarks)
-		
+		vs := voteMap[menu.MenuID]
 		results = append(results, MenuWithStats{
 			Menu:           menu,
-			TotalLikes:     int(totalLikes),
-			TotalDislikes:  int(totalDislikes),
-			TotalBookmarks: int(totalBookmarks),
+			TotalLikes:     vs.TotalLikes,
+			TotalDislikes:  vs.TotalDislikes,
+			TotalBookmarks: bookmarkMap[menu.MenuID],
 		})
 	}
 	
-	c.JSON(http.StatusOK, gin.H{"data": results})
+	// Calculate total pages
+	totalPages := int(total) / limit
+	if int(total)%limit != 0 {
+		totalPages++
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"data":        results,
+		"total":       total,
+		"page":        page,
+		"limit":       limit,
+		"total_pages": totalPages,
+	})
 }
 
-// GetMyBookmarks mendapatkan semua resep yang di-bookmark oleh user
+// GetMyBookmarks mendapatkan semua resep yang di-bookmark oleh user dengan pagination
 func GetMyBookmarks(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
+
+	// Pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
+	search := strings.TrimSpace(c.Query("search"))
+	
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 50 {
+		limit = 12
+	}
+	offset := (page - 1) * limit
 
 	// Get menu IDs yang di-bookmark
 	var bookmarkedMenuIDs []uint
 	config.DB.Table("user_bookmarks").Where("user_id = ?", user.UserID).Pluck("menu_id", &bookmarkedMenuIDs)
 	
 	if len(bookmarkedMenuIDs) == 0 {
-		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		c.JSON(http.StatusOK, gin.H{
+			"data":        []interface{}{},
+			"total":       0,
+			"page":        page,
+			"limit":       limit,
+			"total_pages": 0,
+		})
 		return
 	}
 	
+	// Build query for count
+	countQuery := config.DB.Model(&models.Menu{}).Where("menu_id IN ?", bookmarkedMenuIDs)
+	if search != "" {
+		searchLower := "%" + strings.ToLower(search) + "%"
+		countQuery = countQuery.Where("LOWER(title) LIKE ? OR LOWER(description) LIKE ?", searchLower, searchLower)
+	}
+	
+	var total int64
+	countQuery.Count(&total)
+
 	var menus []models.Menu
 	
-	// Gunakan GORM dengan Preload untuk mendapatkan Tags
-	if err := config.DB.Preload("Tags").Where("menu_id IN ?", bookmarkedMenuIDs).Order("created_at DESC").Find(&menus).Error; err != nil {
+	// Build menu query with pagination
+	menuQuery := config.DB.Preload("Tags").Where("menu_id IN ?", bookmarkedMenuIDs)
+	if search != "" {
+		searchLower := "%" + strings.ToLower(search) + "%"
+		menuQuery = menuQuery.Where("LOWER(title) LIKE ? OR LOWER(description) LIKE ?", searchLower, searchLower)
+	}
+	
+	if err := menuQuery.Order("created_at DESC").Limit(limit).Offset(offset).Find(&menus).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil bookmark"})
 		return
 	}
 	
-	// Tambahkan stats untuk setiap menu
+	// Collect menu IDs for batch stats query
+	var menuIDs []uint
+	for _, menu := range menus {
+		menuIDs = append(menuIDs, menu.MenuID)
+	}
+	
+	// Batch query for votes stats
+	type VoteStat struct {
+		MenuID        uint
+		TotalLikes    int
+		TotalDislikes int
+	}
+	var voteStats []VoteStat
+	if len(menuIDs) > 0 {
+		config.DB.Table("menu_votes").
+			Select("menu_id, IFNULL(SUM(likes_count), 0) as total_likes, IFNULL(SUM(dislikes_count), 0) as total_dislikes").
+			Where("menu_id IN ?", menuIDs).
+			Group("menu_id").
+			Scan(&voteStats)
+	}
+
+	// Batch query for bookmark counts
+	type BookmarkStat struct {
+		MenuID         uint
+		TotalBookmarks int
+	}
+	var bookmarkStats []BookmarkStat
+	if len(menuIDs) > 0 {
+		config.DB.Table("user_bookmarks").
+			Select("menu_id, COUNT(*) as total_bookmarks").
+			Where("menu_id IN ?", menuIDs).
+			Group("menu_id").
+			Scan(&bookmarkStats)
+	}
+
+	// Create maps for quick lookup
+	voteMap := make(map[uint]VoteStat)
+	for _, v := range voteStats {
+		voteMap[v.MenuID] = v
+	}
+	bookmarkMap := make(map[uint]int)
+	for _, b := range bookmarkStats {
+		bookmarkMap[b.MenuID] = b.TotalBookmarks
+	}
+	
+	// Build results with stats
 	type MenuWithStats struct {
 		models.Menu
 		TotalLikes     int `json:"total_likes"`
@@ -420,30 +745,46 @@ func GetMyBookmarks(c *gin.Context) {
 	
 	var results []MenuWithStats
 	for _, menu := range menus {
-		var totalLikes, totalDislikes int64
-		var totalBookmarks int64
-		
-		// Get likes and dislikes
-		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&totalLikes)
-		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&totalDislikes)
-		
-		// Get bookmarks count
-		config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&totalBookmarks)
-		
+		vs := voteMap[menu.MenuID]
 		results = append(results, MenuWithStats{
 			Menu:           menu,
-			TotalLikes:     int(totalLikes),
-			TotalDislikes:  int(totalDislikes),
-			TotalBookmarks: int(totalBookmarks),
+			TotalLikes:     vs.TotalLikes,
+			TotalDislikes:  vs.TotalDislikes,
+			TotalBookmarks: bookmarkMap[menu.MenuID],
 		})
 	}
 	
-	c.JSON(http.StatusOK, gin.H{"data": results})
+	// Calculate total pages
+	totalPages := int(total) / limit
+	if int(total)%limit != 0 {
+		totalPages++
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"data":        results,
+		"total":       total,
+		"page":        page,
+		"limit":       limit,
+		"total_pages": totalPages,
+	})
 }
 
-// GetMyCollection mendapatkan gabungan resep yang dibuat user + bookmark
+// GetMyCollection mendapatkan gabungan resep yang dibuat user + bookmark dengan pagination
 func GetMyCollection(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
+	
+	// Pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
+	search := strings.TrimSpace(c.Query("search"))
+	
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 50 {
+		limit = 12
+	}
+	offset := (page - 1) * limit
 	
 	// Get menu IDs dari resep yang dibuat user
 	var myMenuIDs []uint
@@ -453,12 +794,19 @@ func GetMyCollection(c *gin.Context) {
 	var bookmarkedMenuIDs []uint
 	config.DB.Table("user_bookmarks").Where("user_id = ?", user.UserID).Pluck("menu_id", &bookmarkedMenuIDs)
 	
-	// Gabungkan dan deduplikasi IDs
+	// Get menu IDs dari resep yang di-like (likes_count > 0)
+	var likedMenuIDs []uint
+	config.DB.Table("menu_votes").Where("user_id = ? AND likes_count > 0", user.UserID).Pluck("menu_id", &likedMenuIDs)
+	
+	// Gabungkan dan deduplikasi IDs (own + bookmarked + liked)
 	menuIDMap := make(map[uint]bool)
 	for _, id := range myMenuIDs {
 		menuIDMap[id] = true
 	}
 	for _, id := range bookmarkedMenuIDs {
+		menuIDMap[id] = true
+	}
+	for _, id := range likedMenuIDs {
 		menuIDMap[id] = true
 	}
 	
@@ -468,19 +816,86 @@ func GetMyCollection(c *gin.Context) {
 	}
 	
 	if len(allMenuIDs) == 0 {
-		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		c.JSON(http.StatusOK, gin.H{
+			"data":        []interface{}{},
+			"total":       0,
+			"page":        page,
+			"limit":       limit,
+			"total_pages": 0,
+		})
 		return
 	}
 	
+	// Build query for count (case-insensitive search using LOWER)
+	countQuery := config.DB.Model(&models.Menu{}).Where("menu_id IN ?", allMenuIDs)
+	if search != "" {
+		searchLower := "%" + strings.ToLower(search) + "%"
+		countQuery = countQuery.Where("LOWER(title) LIKE ? OR LOWER(description) LIKE ?", searchLower, searchLower)
+	}
+	
+	var total int64
+	countQuery.Count(&total)
+
 	var menus []models.Menu
 	
-	// Gunakan GORM dengan Preload untuk mendapatkan Tags
-	if err := config.DB.Preload("Tags").Where("menu_id IN ?", allMenuIDs).Order("created_at DESC").Find(&menus).Error; err != nil {
+	// Build menu query with pagination (case-insensitive search using LOWER)
+	menuQuery := config.DB.Preload("Tags").Where("menu_id IN ?", allMenuIDs)
+	if search != "" {
+		searchLower := "%" + strings.ToLower(search) + "%"
+		menuQuery = menuQuery.Where("LOWER(title) LIKE ? OR LOWER(description) LIKE ?", searchLower, searchLower)
+	}
+	
+	if err := menuQuery.Order("created_at DESC").Limit(limit).Offset(offset).Find(&menus).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil koleksi"})
 		return
 	}
 	
-	// Tambahkan stats untuk setiap menu
+	// Collect menu IDs for batch stats query
+	var menuIDs []uint
+	for _, menu := range menus {
+		menuIDs = append(menuIDs, menu.MenuID)
+	}
+	
+	// Batch query for votes stats
+	type VoteStat struct {
+		MenuID        uint
+		TotalLikes    int
+		TotalDislikes int
+	}
+	var voteStats []VoteStat
+	if len(menuIDs) > 0 {
+		config.DB.Table("menu_votes").
+			Select("menu_id, IFNULL(SUM(likes_count), 0) as total_likes, IFNULL(SUM(dislikes_count), 0) as total_dislikes").
+			Where("menu_id IN ?", menuIDs).
+			Group("menu_id").
+			Scan(&voteStats)
+	}
+
+	// Batch query for bookmark counts
+	type BookmarkStat struct {
+		MenuID         uint
+		TotalBookmarks int
+	}
+	var bookmarkStats []BookmarkStat
+	if len(menuIDs) > 0 {
+		config.DB.Table("user_bookmarks").
+			Select("menu_id, COUNT(*) as total_bookmarks").
+			Where("menu_id IN ?", menuIDs).
+			Group("menu_id").
+			Scan(&bookmarkStats)
+	}
+
+	// Create maps for quick lookup
+	voteMap := make(map[uint]VoteStat)
+	for _, v := range voteStats {
+		voteMap[v.MenuID] = v
+	}
+	bookmarkMap := make(map[uint]int)
+	for _, b := range bookmarkStats {
+		bookmarkMap[b.MenuID] = b.TotalBookmarks
+	}
+	
+	// Build results with stats
 	type MenuWithStats struct {
 		models.Menu
 		TotalLikes     int `json:"total_likes"`
@@ -490,23 +905,26 @@ func GetMyCollection(c *gin.Context) {
 	
 	var results []MenuWithStats
 	for _, menu := range menus {
-		var totalLikes, totalDislikes int64
-		var totalBookmarks int64
-		
-		// Get likes and dislikes
-		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&totalLikes)
-		config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&totalDislikes)
-		
-		// Get bookmarks count
-		config.DB.Table("user_bookmarks").Where("menu_id = ?", menu.MenuID).Count(&totalBookmarks)
-		
+		vs := voteMap[menu.MenuID]
 		results = append(results, MenuWithStats{
 			Menu:           menu,
-			TotalLikes:     int(totalLikes),
-			TotalDislikes:  int(totalDislikes),
-			TotalBookmarks: int(totalBookmarks),
+			TotalLikes:     vs.TotalLikes,
+			TotalDislikes:  vs.TotalDislikes,
+			TotalBookmarks: bookmarkMap[menu.MenuID],
 		})
 	}
 	
-	c.JSON(http.StatusOK, gin.H{"data": results})
+	// Calculate total pages
+	totalPages := int(total) / limit
+	if int(total)%limit != 0 {
+		totalPages++
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"data":        results,
+		"total":       total,
+		"page":        page,
+		"limit":       limit,
+		"total_pages": totalPages,
+	})
 }

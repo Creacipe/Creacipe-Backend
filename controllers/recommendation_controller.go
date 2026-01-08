@@ -6,13 +6,23 @@ import (
 	"creacipe-backend/models"
 	"encoding/json"
 	"io"
-	"log" // Import log
+	"log"
 	"net/http"
-	"net/url" // Import untuk URL encoding
+	"net/url"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
+
+// getMLServiceURL returns the ML service base URL from environment variable
+func getMLServiceURL() string {
+	mlURL := os.Getenv("ML_SERVICE_URL")
+	if mlURL == "" {
+		mlURL = "http://localhost:5000" // fallback for local development
+	}
+	return mlURL
+}
 
 // GetRecommendations (by Title) - Mendapatkan resep serupa.
 func GetRecommendations(c *gin.Context) {
@@ -40,7 +50,7 @@ func GetRecommendations(c *gin.Context) {
 	log.Printf("[DEBUG-REC] Title encoded: '%s'", encodedTitle)
 
 	// 4. Panggil service Python dengan endpoint /recommend/title/<encoded_title>.
-	pyServiceURL := "http://localhost:5000/recommend/title/" + encodedTitle
+	pyServiceURL := getMLServiceURL() + "/recommend/title/" + encodedTitle
 	log.Printf("[DEBUG-REC] Calling Python service: %s", pyServiceURL)
 	
 	resp, err := http.Get(pyServiceURL)
@@ -218,7 +228,7 @@ func GetPersonalRecommendations(c *gin.Context) {
 	titlesQueryParam := strings.Join(encodedTitles, ",")
 
 	// 5. Panggil service Python dengan endpoint /recommend/profile?titles=....
-	pyServiceURL := "http://localhost:5000/recommend/profile?titles=" + titlesQueryParam
+	pyServiceURL := getMLServiceURL() + "/recommend/profile?titles=" + titlesQueryParam
 	resp, err := http.Get(pyServiceURL)
 	if err != nil {
 		log.Printf("Error contacting Python service at %s: %v", pyServiceURL, err)
@@ -323,7 +333,7 @@ func GetEvaluationLogs(c *gin.Context) {
 	limit := c.DefaultQuery("limit", "50")
 	
 	// 2. Panggil endpoint logs di ML Service Python
-	pyServiceURL := "http://localhost:5000/admin/logs?limit=" + limit
+	pyServiceURL := getMLServiceURL() + "/admin/logs?limit=" + limit
 	
 	resp, err := http.Get(pyServiceURL)
 	if err != nil {
