@@ -13,9 +13,10 @@ import (
 )
 
 func init() {
+	// Load .env file if it exists (optional for production)
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Gagal memuat file .env")
+		log.Println("Info: .env file tidak ditemukan, menggunakan environment variables dari sistem")
 	}
 	config.ConnectDatabase()
 }
