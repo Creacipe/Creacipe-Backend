@@ -7,6 +7,7 @@ import (
 	"creacipe-backend/models"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -400,22 +401,17 @@ func GetPopularMenus(c *gin.Context) {
 	if limit < 1 || limit > 100 {
 		limit = 20
 	}
-	offset := (page - 1) * limit
 
-	// Get total count
-	var total int64
-	config.DB.Model(&models.Menu{}).Where("status = ?", "approved").Count(&total)
-
-	// Fetch menus with pagination
+	// Fetch ALL approved menus (we need all to sort properly)
 	var menus []models.Menu
 	if err := config.DB.Preload("Tags").
 		Where("status = ?", "approved").
-		Limit(limit).
-		Offset(offset).
 		Find(&menus).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep populer"})
 		return
 	}
+
+	total := int64(len(menus))
 
 	// Collect menu IDs for batch query
 	menuIDs := make([]uint, len(menus))
@@ -484,16 +480,27 @@ func GetPopularMenus(c *gin.Context) {
 		})
 	}
 
-	// Sort by total_likes DESC, vote_score DESC, total_bookmarks DESC
-	for i := 0; i < len(results)-1; i++ {
-		for j := 0; j < len(results)-i-1; j++ {
-			if results[j].TotalLikes < results[j+1].TotalLikes ||
-				(results[j].TotalLikes == results[j+1].TotalLikes && results[j].VoteScore < results[j+1].VoteScore) ||
-				(results[j].TotalLikes == results[j+1].TotalLikes && results[j].VoteScore == results[j+1].VoteScore && results[j].TotalBookmarks < results[j+1].TotalBookmarks) {
-				results[j], results[j+1] = results[j+1], results[j]
-			}
+	// Sort ALL results by total_likes DESC, vote_score DESC, total_bookmarks DESC
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].TotalLikes != results[j].TotalLikes {
+			return results[i].TotalLikes > results[j].TotalLikes
 		}
+		if results[i].VoteScore != results[j].VoteScore {
+			return results[i].VoteScore > results[j].VoteScore
+		}
+		return results[i].TotalBookmarks > results[j].TotalBookmarks
+	})
+
+	// Apply pagination AFTER sorting
+	offset := (page - 1) * limit
+	end := offset + limit
+	if offset > len(results) {
+		offset = len(results)
 	}
+	if end > len(results) {
+		end = len(results)
+	}
+	paginatedResults := results[offset:end]
 
 	totalPages := int(total) / limit
 	if int(total)%limit > 0 {
@@ -501,7 +508,7 @@ func GetPopularMenus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": results,
+		"data": paginatedResults,
 		"meta": gin.H{
 			"total":       total,
 			"page":        page,
