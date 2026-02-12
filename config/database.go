@@ -16,20 +16,37 @@ import (
 var DB *gorm.DB
 
 func ConnectDatabase() {
-	// Register TLS config for TiDB Cloud
-	mysql.RegisterTLSConfig("tidb", &tls.Config{
-		MinVersion: tls.VersionTLS12,
-		ServerName: os.Getenv("DB_HOST"),
-	})
+	var dsn string
+	useTLS := os.Getenv("DB_USE_TLS")
 
-	// Build DSN with TLS
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=tidb",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_NAME"),
-	)
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+
+	// Log connection parameters for debugging (without password)
+	log.Printf("DB Config -> Host: %s, Port: %s, User: %s, Database: %s, TLS: %s\n", dbHost, dbPort, dbUser, dbName, useTLS)
+
+	if useTLS == "true" {
+		// Register TLS config for TiDB Cloud / Online Database
+		mysql.RegisterTLSConfig("tidb", &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			ServerName: dbHost,
+		})
+
+		// Build DSN with TLS for online database
+		dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=tidb",
+			dbUser, dbPassword, dbHost, dbPort, dbName,
+		)
+		log.Println("Connecting to database with TLS (online mode)...")
+	} else {
+		// Build DSN without TLS for localhost
+		dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+			dbUser, dbPassword, dbHost, dbPort, dbName,
+		)
+		log.Println("Connecting to database without TLS (localhost mode)...")
+	}
 
 	// Configure GORM logger for production (Warn level - only slow queries and errors)
 	gormLogger := logger.New(
@@ -46,7 +63,7 @@ func ConnectDatabase() {
 		Logger: gormLogger,
 	})
 	if err != nil {
-		panic("Gagal terhubung ke database!")
+		log.Fatalf("Gagal terhubung ke database! Error: %v\n", err)
 	}
 	log.Println("Koneksi ke database berhasil.")
 
