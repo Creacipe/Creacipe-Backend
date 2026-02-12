@@ -190,7 +190,7 @@ func GetPersonalRecommendations(c *gin.Context) {
 	var bookmarkedMenuIDs []uint
 	config.DB.Table("user_bookmarks").Where("user_id = ?", user.UserID).Pluck("menu_id", &bookmarkedMenuIDs)
 	var likedMenuIDs []uint
-	config.DB.Table("menu_votes").Where("user_id = ? AND vote_type = ?", user.UserID, 1).Pluck("menu_id", &likedMenuIDs)
+	config.DB.Table("menu_votes").Where("user_id = ? AND likes_count > 0", user.UserID).Pluck("menu_id", &likedMenuIDs)
 
 	favoriteMenuIDs := append(bookmarkedMenuIDs, likedMenuIDs...)
 	idMap := make(map[uint]bool)
@@ -291,12 +291,12 @@ func GetPersonalRecommendations(c *gin.Context) {
 				(SELECT COUNT(*) FROM user_bookmarks WHERE menu_id = m.menu_id) as total_bookmarks
 			FROM menus m
 			LEFT JOIN menu_votes mv ON m.menu_id = mv.menu_id
-			WHERE LOWER(m.title) IN ? AND m.status = 'approved'
+			WHERE LOWER(m.title) IN ? AND m.status = 'approved' AND m.menu_id NOT IN ?
 			GROUP BY m.menu_id, m.user_id, m.title, m.description, m.ingredients, m.instructions,
 			         m.image_url, m.status, m.created_at, m.updated_at
 		`
 		
-		if err := config.DB.Raw(query, lowercaseTitles).Scan(&recommendedMenus).Error; err != nil {
+		if err := config.DB.Raw(query, lowercaseTitles, uniqueIDs).Scan(&recommendedMenus).Error; err != nil {
 			log.Printf("Error fetching recommended menus by title with stats: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil detail resep dari judul rekomendasi"})
 			return
