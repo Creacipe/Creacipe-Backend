@@ -406,19 +406,19 @@ func GetPopularMenus(c *gin.Context) {
 	var total int64
 	config.DB.Model(&models.Menu{}).Where("status = ?", "approved").Count(&total)
 
-	// Single query: sort by popularity at DB level with LIMIT/OFFSET
-	type PopularResult struct {
-		models.Menu
-		TotalLikes     int `json:"total_likes"`
-		TotalDislikes  int `json:"total_dislikes"`
-		TotalBookmarks int `json:"total_bookmarks"`
-		VoteScore      int `json:"vote_score"`
+	// Step 1: Get sorted menu IDs + stats only (no m.*, avoids mapping issues)
+	type MenuStat struct {
+		MenuID         uint `gorm:"column:menu_id"`
+		TotalLikes     int  `gorm:"column:total_likes"`
+		TotalDislikes  int  `gorm:"column:total_dislikes"`
+		VoteScore      int  `gorm:"column:vote_score"`
+		TotalBookmarks int  `gorm:"column:total_bookmarks"`
 	}
 
-	var results []PopularResult
-	query := `
+	var menuStats []MenuStat
+	statsQuery := `
 		SELECT 
-			m.*,
+			m.menu_id,
 			COALESCE(SUM(mv.likes_count), 0) as total_likes,
 			COALESCE(SUM(mv.dislikes_count), 0) as total_dislikes,
 			COALESCE(SUM(mv.likes_count), 0) - COALESCE(SUM(mv.dislikes_count), 0) as vote_score,
@@ -431,50 +431,56 @@ func GetPopularMenus(c *gin.Context) {
 		LIMIT ? OFFSET ?
 	`
 
-	if err := config.DB.Raw(query, limit, offset).Scan(&results).Error; err != nil {
+	if err := config.DB.Raw(statsQuery, limit, offset).Scan(&menuStats).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep populer"})
 		return
 	}
 
-	// Load Tags for the page results only
-	if len(results) > 0 {
-		menuIDs := make([]uint, len(results))
-		for i, r := range results {
-			menuIDs[i] = r.MenuID
-		}
+	if len(menuStats) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"data": []interface{}{},
+			"meta": gin.H{"total": total, "page": page, "limit": limit, "total_pages": 0},
+		})
+		return
+	}
 
-		// Fetch tags via menu_tags join table
-		type MenuTag struct {
-			MenuID uint
-			TagID  uint
-		}
-		var menuTags []MenuTag
-		config.DB.Table("menu_tags").Where("menu_id IN ?", menuIDs).Find(&menuTags)
+	// Step 2: Fetch full menu details via GORM (proper field mapping + Tags)
+	menuIDs := make([]uint, len(menuStats))
+	for i, ms := range menuStats {
+		menuIDs[i] = ms.MenuID
+	}
 
-		if len(menuTags) > 0 {
-			tagIDs := make([]uint, 0)
-			for _, mt := range menuTags {
-				tagIDs = append(tagIDs, mt.TagID)
-			}
+	var menus []models.Menu
+	if err := config.DB.Preload("Tags").Where("menu_id IN ?", menuIDs).Find(&menus).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil detail resep"})
+		return
+	}
 
-			var tags []models.Tag
-			config.DB.Where("tag_id IN ?", tagIDs).Find(&tags)
+	// Create menu map for quick lookup
+	menuMap := make(map[uint]models.Menu)
+	for _, menu := range menus {
+		menuMap[menu.MenuID] = menu
+	}
 
-			tagMap := make(map[uint]*models.Tag)
-			for i := range tags {
-				tagMap[tags[i].TagID] = &tags[i]
-			}
+	// Step 3: Merge stats with menu data, preserving sort order from SQL
+	type PopularResult struct {
+		models.Menu
+		TotalLikes     int `json:"total_likes"`
+		TotalDislikes  int `json:"total_dislikes"`
+		TotalBookmarks int `json:"total_bookmarks"`
+		VoteScore      int `json:"vote_score"`
+	}
 
-			menuTagsMap := make(map[uint][]*models.Tag)
-			for _, mt := range menuTags {
-				if tag, ok := tagMap[mt.TagID]; ok {
-					menuTagsMap[mt.MenuID] = append(menuTagsMap[mt.MenuID], tag)
-				}
-			}
-
-			for i := range results {
-				results[i].Tags = menuTagsMap[results[i].MenuID]
-			}
+	var results []PopularResult
+	for _, ms := range menuStats {
+		if menu, ok := menuMap[ms.MenuID]; ok {
+			results = append(results, PopularResult{
+				Menu:           menu,
+				TotalLikes:     ms.TotalLikes,
+				TotalDislikes:  ms.TotalDislikes,
+				TotalBookmarks: ms.TotalBookmarks,
+				VoteScore:      ms.VoteScore,
+			})
 		}
 	}
 
