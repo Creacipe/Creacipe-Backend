@@ -7,7 +7,6 @@ import (
 	"creacipe-backend/models"
 	"log"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -401,63 +400,13 @@ func GetPopularMenus(c *gin.Context) {
 	if limit < 1 || limit > 100 {
 		limit = 20
 	}
+	offset := (page - 1) * limit
 
-	// Fetch ALL approved menus (we need all to sort properly)
-	var menus []models.Menu
-	if err := config.DB.Preload("Tags").
-		Where("status = ?", "approved").
-		Find(&menus).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep populer"})
-		return
-	}
+	// Get total count of approved menus
+	var total int64
+	config.DB.Model(&models.Menu{}).Where("status = ?", "approved").Count(&total)
 
-	total := int64(len(menus))
-
-	// Collect menu IDs for batch query
-	menuIDs := make([]uint, len(menus))
-	for i, menu := range menus {
-		menuIDs[i] = menu.MenuID
-	}
-
-	// Batch query for votes stats
-	type VoteStat struct {
-		MenuID        uint
-		TotalLikes    int
-		TotalDislikes int
-	}
-	var voteStats []VoteStat
-	if len(menuIDs) > 0 {
-		config.DB.Table("menu_votes").
-			Select("menu_id, IFNULL(SUM(likes_count), 0) as total_likes, IFNULL(SUM(dislikes_count), 0) as total_dislikes").
-			Where("menu_id IN ?", menuIDs).
-			Group("menu_id").
-			Scan(&voteStats)
-	}
-
-	// Batch query for bookmark counts
-	type BookmarkStat struct {
-		MenuID         uint
-		TotalBookmarks int
-	}
-	var bookmarkStats []BookmarkStat
-	if len(menuIDs) > 0 {
-		config.DB.Table("user_bookmarks").
-			Select("menu_id, COUNT(*) as total_bookmarks").
-			Where("menu_id IN ?", menuIDs).
-			Group("menu_id").
-			Scan(&bookmarkStats)
-	}
-
-	// Create maps for quick lookup
-	voteMap := make(map[uint]VoteStat)
-	for _, vs := range voteStats {
-		voteMap[vs.MenuID] = vs
-	}
-	bookmarkMap := make(map[uint]int)
-	for _, bs := range bookmarkStats {
-		bookmarkMap[bs.MenuID] = bs.TotalBookmarks
-	}
-
+	// Single query: sort by popularity at DB level with LIMIT/OFFSET
 	type PopularResult struct {
 		models.Menu
 		TotalLikes     int `json:"total_likes"`
@@ -467,40 +416,67 @@ func GetPopularMenus(c *gin.Context) {
 	}
 
 	var results []PopularResult
-	for _, menu := range menus {
-		vs := voteMap[menu.MenuID]
-		voteScore := vs.TotalLikes - vs.TotalDislikes
+	query := `
+		SELECT 
+			m.*,
+			COALESCE(SUM(mv.likes_count), 0) as total_likes,
+			COALESCE(SUM(mv.dislikes_count), 0) as total_dislikes,
+			COALESCE(SUM(mv.likes_count), 0) - COALESCE(SUM(mv.dislikes_count), 0) as vote_score,
+			(SELECT COUNT(*) FROM user_bookmarks ub WHERE ub.menu_id = m.menu_id) as total_bookmarks
+		FROM menus m
+		LEFT JOIN menu_votes mv ON m.menu_id = mv.menu_id
+		WHERE m.status = 'approved'
+		GROUP BY m.menu_id
+		ORDER BY total_likes DESC, vote_score DESC, total_bookmarks DESC
+		LIMIT ? OFFSET ?
+	`
 
-		results = append(results, PopularResult{
-			Menu:           menu,
-			TotalLikes:     vs.TotalLikes,
-			TotalDislikes:  vs.TotalDislikes,
-			TotalBookmarks: bookmarkMap[menu.MenuID],
-			VoteScore:      voteScore,
-		})
+	if err := config.DB.Raw(query, limit, offset).Scan(&results).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil resep populer"})
+		return
 	}
 
-	// Sort ALL results by total_likes DESC, vote_score DESC, total_bookmarks DESC
-	sort.Slice(results, func(i, j int) bool {
-		if results[i].TotalLikes != results[j].TotalLikes {
-			return results[i].TotalLikes > results[j].TotalLikes
+	// Load Tags for the page results only
+	if len(results) > 0 {
+		menuIDs := make([]uint, len(results))
+		for i, r := range results {
+			menuIDs[i] = r.MenuID
 		}
-		if results[i].VoteScore != results[j].VoteScore {
-			return results[i].VoteScore > results[j].VoteScore
-		}
-		return results[i].TotalBookmarks > results[j].TotalBookmarks
-	})
 
-	// Apply pagination AFTER sorting
-	offset := (page - 1) * limit
-	end := offset + limit
-	if offset > len(results) {
-		offset = len(results)
+		// Fetch tags via menu_tags join table
+		type MenuTag struct {
+			MenuID uint
+			TagID  uint
+		}
+		var menuTags []MenuTag
+		config.DB.Table("menu_tags").Where("menu_id IN ?", menuIDs).Find(&menuTags)
+
+		if len(menuTags) > 0 {
+			tagIDs := make([]uint, 0)
+			for _, mt := range menuTags {
+				tagIDs = append(tagIDs, mt.TagID)
+			}
+
+			var tags []models.Tag
+			config.DB.Where("tag_id IN ?", tagIDs).Find(&tags)
+
+			tagMap := make(map[uint]*models.Tag)
+			for i := range tags {
+				tagMap[tags[i].TagID] = &tags[i]
+			}
+
+			menuTagsMap := make(map[uint][]*models.Tag)
+			for _, mt := range menuTags {
+				if tag, ok := tagMap[mt.TagID]; ok {
+					menuTagsMap[mt.MenuID] = append(menuTagsMap[mt.MenuID], tag)
+				}
+			}
+
+			for i := range results {
+				results[i].Tags = menuTagsMap[results[i].MenuID]
+			}
+		}
 	}
-	if end > len(results) {
-		end = len(results)
-	}
-	paginatedResults := results[offset:end]
 
 	totalPages := int(total) / limit
 	if int(total)%limit > 0 {
@@ -508,7 +484,7 @@ func GetPopularMenus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": paginatedResults,
+		"data": results,
 		"meta": gin.H{
 			"total":       total,
 			"page":        page,
