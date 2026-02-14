@@ -1,43 +1,43 @@
 package helpers
 
 import (
+	"bytes"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
 	"os"
-	"strconv"
 	"time"
-
-	"gopkg.in/gomail.v2"
 )
 
-// EmailConfig menyimpan konfigurasi SMTP
+// EmailConfig menyimpan konfigurasi email (Brevo HTTP API)
 type EmailConfig struct {
-	SMTPHost     string
-	SMTPPort     int
-	SMTPUsername string
-	SMTPPassword string
-	FromEmail    string
-	FromName     string
+	APIKey    string
+	FromEmail string
+	FromName  string
+}
+
+// brevoEmailRequest adalah struktur request body untuk Brevo API
+type brevoEmailRequest struct {
+	Sender      brevoContact   `json:"sender"`
+	To          []brevoContact `json:"to"`
+	Subject     string         `json:"subject"`
+	HTMLContent string         `json:"htmlContent"`
+}
+
+type brevoContact struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 // GetEmailConfig membaca konfigurasi email dari environment variables
 func GetEmailConfig() EmailConfig {
-	portStr := os.Getenv("SMTP_PORT")
-	port := 587 // default port
-	if portStr != "" {
-		if p, err := strconv.Atoi(portStr); err == nil {
-			port = p
-		}
-	}
-
 	return EmailConfig{
-		SMTPHost:     os.Getenv("SMTP_HOST"),
-		SMTPPort:     port,
-		SMTPUsername: os.Getenv("SMTP_USERNAME"),
-		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
-		FromEmail:    os.Getenv("SMTP_FROM_EMAIL"),
-		FromName:     os.Getenv("SMTP_FROM_NAME"),
+		APIKey:    os.Getenv("BREVO_API_KEY"),
+		FromEmail: os.Getenv("SMTP_FROM_EMAIL"),
+		FromName:  os.Getenv("SMTP_FROM_NAME"),
 	}
 }
 
@@ -52,21 +52,17 @@ func GenerateVerificationCode() string {
 	return fmt.Sprintf("%06d", n.Int64())
 }
 
-// SendVerificationEmail mengirim email verifikasi
+// SendVerificationEmail mengirim email verifikasi via Brevo HTTP API
 func SendVerificationEmail(toEmail, toName, verificationCode, purpose string) error {
 	config := GetEmailConfig()
 
-	// BYPASS untuk testing - jika SMTP host adalah "smtp.test.com", skip sending email
-	if config.SMTPHost == "smtp.test.com" {
+	// BYPASS untuk testing - jika API key adalah "test-key", skip sending email
+	if config.APIKey == "test-key" {
 		return nil
 	}
 
-	m := gomail.NewMessage()
-	m.SetHeader("From", fmt.Sprintf("%s <%s>", config.FromName, config.FromEmail))
-	m.SetHeader("To", toEmail)
-	
 	var subject, htmlBody string
-	
+
 	switch purpose {
 	case "reset_password":
 		subject = "Kode Verifikasi Reset Password - Creacipe"
@@ -150,13 +146,43 @@ func SendVerificationEmail(toEmail, toName, verificationCode, purpose string) er
 		return fmt.Errorf("purpose tidak valid: %s", purpose)
 	}
 
-	m.SetHeader("Subject", subject)
-	m.SetBody("text/html", htmlBody)
+	// Kirim email via Brevo HTTP API
+	reqBody := brevoEmailRequest{
+		Sender: brevoContact{
+			Name:  config.FromName,
+			Email: config.FromEmail,
+		},
+		To: []brevoContact{
+			{Name: toName, Email: toEmail},
+		},
+		Subject:     subject,
+		HTMLContent: htmlBody,
+	}
 
-	d := gomail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("gagal membuat request body: %v", err)
+	}
 
-	if err := d.DialAndSend(m); err != nil {
+	req, err := http.NewRequest("POST", "https://api.brevo.com/v3/smtp/email", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("gagal membuat HTTP request: %v", err)
+	}
+
+	req.Header.Set("accept", "application/json")
+	req.Header.Set("content-type", "application/json")
+	req.Header.Set("api-key", config.APIKey)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
 		return fmt.Errorf("gagal mengirim email: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("gagal mengirim email (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	return nil
