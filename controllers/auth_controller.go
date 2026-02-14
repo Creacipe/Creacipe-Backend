@@ -441,8 +441,8 @@ func ForgotPasswordRequest(c *gin.Context) {
 	// fmt.Printf("[INFO] Kode verifikasi: %s\n", verificationCode)
 	
 	if err := helpers.SendVerificationEmail(user.Email, user.Name, verificationCode, "reset_password"); err != nil {
-		fmt.Printf("[ERROR] Gagal mengirim email: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Gagal mengirim email verifikasi: %v", err)})
+		// fmt.Printf("[ERROR] Gagal mengirim email: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengirim email verifikasi"})
 		return
 	}
 	
