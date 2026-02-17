@@ -3,7 +3,7 @@ package controllers
 
 import (
 	"creacipe-backend/config"
-	"creacipe-backend/helpers" // <-- 1. IMPORT HELPER
+	"creacipe-backend/helpers" 
 	"creacipe-backend/models"
 	"net/http"
 
@@ -117,14 +117,12 @@ func UpdateMenuStatus(c *gin.Context) {
 		return
 	}
 
-	// --- 2. TAMBAHKAN LOG UNTUK AKSI MODERASI ---
 	actionLog := "APPROVE_MENU"
 	if input.Status == "rejected" {
 		actionLog = "REJECT_MENU"
 	}
 	helpers.CreateLog(moderatorInfo.UserID, actionLog, menu.MenuID, "menus")
-	// ---------------------------------------------
-	// --- 3. BUAT NOTIFIKASI UNTUK PEMILIK RESEP ---
+
 	if input.Status == "approved" {
 		helpers.CreateNotification(
 			menu.UserID,

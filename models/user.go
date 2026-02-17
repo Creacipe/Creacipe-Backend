@@ -16,7 +16,7 @@ type User struct {
 	// --- Relasi ---
 	Role      Role 		    `gorm:"foreignKey:RoleID;references:RoleID" json:"Role"`
 	Profile   UserProfile `gorm:"foreignKey:UserID" json:"Profile"`
-	UserProfile UserProfile `gorm:"foreignKey:UserID" json:"-"` //alias untuk code coverage
+	UserProfile UserProfile `gorm:"foreignKey:UserID" json:"-"` 
 	Menus     []Menu      `gorm:"foreignKey:UserID" json:"-"`
 	Comments  []Comment   `gorm:"foreignKey:UserID" json:"-"`
 	Votes     []MenuVote  `gorm:"foreignKey:UserID" json:"-"`
@@ -28,7 +28,7 @@ type AdminCreateUserInput struct {
 	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
-	// PERBAIKAN: Tambahkan spasi di antara pilihan oneof
+	
 	RoleName string `json:"role_name" binding:"required,oneof=admin editor member"`
 }
 
@@ -40,7 +40,7 @@ type AdminUpdateUserInput struct {
 
 // UpdateUserRoleInput mendefinisikan input saat mengubah peran user.
 type UpdateUserRoleInput struct {
-	// PERBAIKAN: Tambahkan spasi di antara pilihan oneof
+	
 	RoleName string `json:"role_name" binding:"required,oneof=admin editor member"`
 }
 

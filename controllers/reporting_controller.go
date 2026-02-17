@@ -10,13 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Helper function to parse dates
-func parseDateRange(c *gin.Context) (time.Time, time.Time) {
-	// Default: last 30 days
-	endDate := time.Now()
-	startDate := endDate.AddDate(0, 0, -29) // 30 days including today
 
-	// Override with query params if they exist and are valid
+func parseDateRange(c *gin.Context) (time.Time, time.Time) {
+	
+	endDate := time.Now()
+	startDate := endDate.AddDate(0, 0, -29) 
+
+	
 	if val, ok := c.GetQuery("startDate"); ok {
 		if parsed, err := time.Parse("2006-01-02", val); err == nil {
 			startDate = parsed
@@ -24,7 +24,7 @@ func parseDateRange(c *gin.Context) (time.Time, time.Time) {
 	}
 	if val, ok := c.GetQuery("endDate"); ok {
 		if parsed, err := time.Parse("2006-01-02", val); err == nil {
-			// To include the whole day
+			
 			endDate = parsed.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
 		}
 	}
@@ -33,11 +33,11 @@ func parseDateRange(c *gin.Context) (time.Time, time.Time) {
 }
 
 
-// GetRecipeStats provides statistics about recipe statuses (pending, approved, rejected).
+
 func GetRecipeStats(c *gin.Context) {
 	var pendingCount, approvedCount, rejectedCount int64
 
-	// Count recipes for each status
+	
 	config.DB.Model(&models.Menu{}).Where("status = ?", "pending").Count(&pendingCount)
 	config.DB.Model(&models.Menu{}).Where("status = ?", "approved").Count(&approvedCount)
 	config.DB.Model(&models.Menu{}).Where("status = ?", "rejected").Count(&rejectedCount)
@@ -51,7 +51,6 @@ func GetRecipeStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": stats})
 }
 
-// GetGrowthStats provides daily counts of new users and new recipes for a given date range.
 func GetGrowthStats(c *gin.Context) {
 	startDate, endDate := parseDateRange(c)
 
@@ -61,14 +60,13 @@ func GetGrowthStats(c *gin.Context) {
 		NewRecipes int    `json:"new_recipes"`
 	}
 
-	// Create a map to hold stats for each day in the range
 	statsMap := make(map[string]*DailyStat)
 	for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
 		dateStr := d.Format("2006-01-02")
 		statsMap[dateStr] = &DailyStat{Date: dateStr}
 	}
 
-	// Query for new users per day
+	
 	var userGrowth []struct {
 		Date  time.Time
 		Count int
@@ -86,7 +84,7 @@ func GetGrowthStats(c *gin.Context) {
 		}
 	}
 
-	// Query for new recipes per day
+
 	var recipeGrowth []struct {
 		Date  time.Time
 		Count int
@@ -104,7 +102,7 @@ func GetGrowthStats(c *gin.Context) {
 		}
 	}
 
-	// Convert map to a sorted slice
+
 	var results []DailyStat
 	for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
 		dateStr := d.Format("2006-01-02")
@@ -115,7 +113,7 @@ func GetGrowthStats(c *gin.Context) {
 }
 
 
-// GetTopTags returns the top 10 most used tags.
+
 func GetTopTags(c *gin.Context) {
 	type TagStat struct {
 		TagName string `json:"tag_name"`
@@ -140,7 +138,7 @@ func GetTopTags(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": results})
 }
 
-// GetActivityLogStats provides daily counts of activities for a given date range.
+
 func GetActivityLogStats(c *gin.Context) {
 	startDate, endDate := parseDateRange(c)
 
@@ -149,7 +147,7 @@ func GetActivityLogStats(c *gin.Context) {
 		ActivityCount int    `json:"activity_count"`
 	}
 	
-	// Create a map to hold stats for each day in the range
+	
 	statsMap := make(map[string]*DailyActivity)
 	for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
 		dateStr := d.Format("2006-01-02")
@@ -180,7 +178,7 @@ func GetActivityLogStats(c *gin.Context) {
 		}
 	}
 	
-	// Convert map to a sorted slice
+	
 	var results []DailyActivity
 	for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
 		dateStr := d.Format("2006-01-02")
@@ -191,7 +189,7 @@ func GetActivityLogStats(c *gin.Context) {
 }
 
 
-// GetTopLikedRecipes returns the top 5 most liked recipes.
+
 func GetTopLikedRecipes(c *gin.Context) {
 	type RecipeStat struct {
 		Title      string `json:"title"`
@@ -216,7 +214,7 @@ func GetTopLikedRecipes(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": results})
 }
 
-// GetTopBookmarkedRecipes returns the top 5 most bookmarked recipes.
+
 func GetTopBookmarkedRecipes(c *gin.Context) {
 	type RecipeStat struct {
 		Title          string `json:"title"`

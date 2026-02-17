@@ -53,7 +53,7 @@ func UploadToImageKit(file multipart.File, fileHeader *multipart.FileHeader, fol
 		return "", fmt.Errorf("failed to read file: %v", err)
 	}
 
-	// Encode file ke base64
+	
 	base64File := base64.StdEncoding.EncodeToString(fileBytes)
 
 	// Buat nama file unik
@@ -65,7 +65,7 @@ func UploadToImageKit(file multipart.File, fileHeader *multipart.FileHeader, fol
 	var requestBody bytes.Buffer
 	writer := multipart.NewWriter(&requestBody)
 
-	// Tambah field file (base64)
+	// Tambah field file 
 	writer.WriteField("file", base64File)
 	// Nama file
 	writer.WriteField("fileName", uniqueName)
@@ -82,10 +82,10 @@ func UploadToImageKit(file multipart.File, fileHeader *multipart.FileHeader, fol
 		return "", fmt.Errorf("failed to create request: %v", err)
 	}
 
-	// Set headers
+	
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	// Set Basic Auth (privateKey:)
+	
 	auth := base64.StdEncoding.EncodeToString([]byte(privateKey + ":"))
 	req.Header.Set("Authorization", "Basic "+auth)
 
@@ -129,15 +129,15 @@ func UploadToImageKitFromBytes(fileBytes []byte, filename string, folder string)
 		return "", fmt.Errorf("imagekit credentials not configured in environment")
 	}
 
-	// Encode file ke base64
+	
 	base64File := base64.StdEncoding.EncodeToString(fileBytes)
 
-	// Buat nama file unik
+	
 	ext := filepath.Ext(filename)
 	baseName := strings.TrimSuffix(filename, ext)
 	uniqueName := fmt.Sprintf("%s_%d%s", Slugify(baseName), time.Now().UnixNano(), ext)
 
-	// Buat multipart form untuk upload
+	
 	var requestBody bytes.Buffer
 	writer := multipart.NewWriter(&requestBody)
 

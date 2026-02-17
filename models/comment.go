@@ -8,11 +8,11 @@ type Comment struct {
 	CommentID   uint      `gorm:"primaryKey;column:comment_id" json:"comment_id"`
 	MenuID      uint      `gorm:"not null" json:"menu_id"`
 	UserID      uint      `gorm:"not null" json:"user_id"`
-	ParentID    *uint     `gorm:"default:null" json:"parent_id"` // Untuk reply
+	ParentID    *uint     `gorm:"default:null" json:"parent_id"` 
 	CommentText string    `gorm:"type:text;not null" json:"comment_text"`
 	CreatedAt   time.Time `json:"created_at"`
 	
-	// Relasi untuk nested replies (optional, bisa di-load saat perlu)
+	
 	Replies     []Comment `gorm:"foreignKey:ParentID" json:"replies,omitempty"`
 }
 

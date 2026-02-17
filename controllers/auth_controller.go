@@ -26,12 +26,10 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Mohon lengkapi data pendaftaran dan captcha"})
 		return
 	}
-	// --- 1. VALIDASI RECAPTCHA
 	if err := helpers.VerifyRecaptcha(input.RecaptchaToken); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Verifikasi Captcha Gagal: Anda terdeteksi sebagai robot atau token kadaluwarsa."})
 		return
 	}
-	// ---------------------------------------------
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -51,40 +49,36 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// --- TAMBAHAN: BUAT PROFIL KOSONG OTOMATIS ---
-	// Setelah user berhasil dibuat, langsung buatkan profil kosong untuknya.
+
 	profile := models.UserProfile{UserID: user.UserID}
 	if err := config.DB.Create(&profile).Error; err != nil {
-		// Idealnya, ada penanganan jika pembuatan profil gagal
 		log.Printf("Gagal membuat profil untuk user ID %d: %v", user.UserID, err)
 	}
-	// ---------------------------------------------
-
-	// --- 2. TAMBAHKAN LOG UNTUK REGISTRASI ---
+	
+	
 	helpers.CreateLog(user.UserID, "USER_REGISTER", user.UserID, "users")
-	// ------------------------------------------
+	
 
 	c.JSON(http.StatusOK, gin.H{"message": "Registrasi berhasil"})
 }
 
 
-// Login sekarang mengembalikan access_token dan refresh_token
+
 func Login(c *gin.Context) {
 	var input models.LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Mohon lengkapi data login dan captcha"})
 		return
 	}
-	// --- 1. VALIDASI RECAPTCHA (TAMBAHAN BARU) ---
-	// Panggil helper yang baru kita buat
+
 	if err := helpers.VerifyRecaptcha(input.RecaptchaToken); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Verifikasi Captcha Gagal: Anda terdeteksi sebagai robot atau token kadaluwarsa."})
 		return
 	}
-	// ---------------------------------------------
+	
 
 	var user models.User
-    // Pastikan Preload("Role") ada di sini
+    
 	if err := config.DB.Preload("Role").Where("email = ?", input.Email).First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email atau password salah"})
 		return
@@ -100,16 +94,14 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// 1. Buat Access Token (15 menit)
-    // KIRIM datanya secara EKSPLISIT
+
 	accessToken, err := helpers.CreateAccessToken(user.UserID, user.Role.RoleName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat access token"})
 		return
 	}
 
-	// 2. Buat Refresh Token (7 hari)
-    // KIRIM datanya secara EKSPLISIT
+	
 	refreshToken, err := helpers.CreateRefreshToken(user.UserID, user.Role.RoleName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat refresh token"})
@@ -124,8 +116,6 @@ func Login(c *gin.Context) {
 	})
 }
 
-// --- FUNGSI REFRESH TOKEN (BARU & DIPERBARUI) ---
-// RefreshToken memvalidasi refresh token dan memberikan access token baru
 func RefreshToken(c *gin.Context) {
 	var body struct {
 		RefreshToken string `json:"refresh_token"`
@@ -136,7 +126,6 @@ func RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// 1. Validasi token
 	token, err := jwt.Parse(body.RefreshToken, func(token *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
@@ -152,11 +141,11 @@ func RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// 2. Ambil UserID dari token
+
 	userID := uint(claims["sub"].(float64))
 	var user models.User
 	
-	// 3. Ambil data user terbaru (DENGAN ROLE)
+
 	if err := config.DB.Preload("Role").First(&user, userID).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak ditemukan"})
 		return
@@ -167,22 +156,19 @@ func RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// 4. Buat Access Token baru
-    // KIRIM datanya secara EKSPLISIT
+
 	newAccessToken, err := helpers.CreateAccessToken(user.UserID, user.Role.RoleName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat access token baru"})
 		return
 	}
 
-	// 5. Kembalikan token baru
 	c.JSON(http.StatusOK, gin.H{
 		"access_token": newAccessToken,
 	})
 }
 
-//-------untuk reset password-------//
-// RequestPasswordReset mengirim kode verifikasi untuk reset password
+
 func RequestPasswordReset(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
@@ -195,20 +181,19 @@ func RequestPasswordReset(c *gin.Context) {
 		return
 	}
 
-	// Verifikasi password lama
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.CurrentPassword)); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Password saat ini tidak valid"})
 		return
 	}
 
-	// Generate kode verifikasi 6 digit
+
 	verificationCode := helpers.GenerateVerificationCode()
 	expiresAt := time.Now().Add(10 * time.Minute) // Berlaku 10 menit
 
-	// Hapus kode lama yang belum digunakan
+
 	config.DB.Where("user_id = ? AND is_used = false", user.UserID).Delete(&models.PasswordReset{})
 
-	// Simpan kode baru
+
 	passwordReset := models.PasswordReset{
 		UserID:           user.UserID,
 		VerificationCode: verificationCode,
@@ -283,7 +268,6 @@ func VerifyAndResetPassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil diubah"})
 }
 
-// ========== EMAIL CHANGE WITH VERIFICATION ==========
 
 // RequestEmailChange mengirim kode verifikasi untuk ubah email
 func RequestEmailChange(c *gin.Context) {
@@ -392,8 +376,6 @@ func VerifyAndChangeEmail(c *gin.Context) {
 	})
 }
 
-// ========== FORGOT PASSWORD (PUBLIC - NO AUTH REQUIRED) ==========
-
 // ForgotPasswordRequest mengirim kode OTP ke email user (tanpa perlu login)
 func ForgotPasswordRequest(c *gin.Context) {
 	var input struct {
@@ -408,8 +390,6 @@ func ForgotPasswordRequest(c *gin.Context) {
 	// Cari user berdasarkan email
 	var user models.User
 	if err := config.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
-		// JANGAN beritahu user bahwa email tidak ditemukan (security)
-		// Kirim respons sukses agar attacker tidak tahu email mana yang terdaftar
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Jika email terdaftar, kode verifikasi akan dikirim ke email Anda",
 		})

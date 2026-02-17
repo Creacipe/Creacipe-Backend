@@ -17,13 +17,12 @@ func GetMyNotifications(c *gin.Context) {
 	query := config.DB.Where("user_id = ?", user.UserID).
 		Order("created_at DESC")
 
-	// Filter by read/unread (optional)
 	if readFilter := c.Query("is_read"); readFilter != "" {
 		isRead := readFilter == "true"
 		query = query.Where("is_read = ?", isRead)
 	}
 
-	// Pagination
+	
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	offset := (page - 1) * limit

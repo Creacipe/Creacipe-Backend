@@ -3,7 +3,7 @@ package controllers
 
 import (
 	"creacipe-backend/config"
-	"creacipe-backend/helpers" // <-- Import helper
+	"creacipe-backend/helpers" 
 	"creacipe-backend/models"
 	"net/http"
 
@@ -53,14 +53,13 @@ func SetupFirstAdmin(c *gin.Context) {
 		return
 	}
 
-	// --- TAMBAHAN: BUAT PROFIL KOSONG OTOMATIS ---
+	
 	profile := models.UserProfile{UserID: admin.UserID}
 	config.DB.Create(&profile)
-	// ---------------------------------------------
+	
 
-	// --- TAMBAHKAN LOG ---
 	helpers.CreateLog(admin.UserID, "SETUP_FIRST_ADMIN", admin.UserID, "users")
-	// ---------------------
+
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Setup berhasil! Admin pertama telah dibuat."})
 }

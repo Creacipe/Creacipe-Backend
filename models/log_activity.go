@@ -18,7 +18,7 @@ type LogActivity struct {
 	Category   *Category `gorm:"foreignKey:TargetID;references:CategoryID" json:"Category,omitempty"`
 }
 
-// TableName memberitahu GORM nama tabel yang benar di database.
+
 func (LogActivity) TableName() string {
     return "log_activity"
 }

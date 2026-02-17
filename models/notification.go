@@ -11,7 +11,7 @@ type Notification struct {
 	Type           string    `gorm:"type:enum('info','success','warning','danger');default:'info'" json:"type"`
 	IsRead         bool      `gorm:"default:false;column:is_read" json:"is_read"`
 	RelatedID      *uint     `gorm:"column:related_id" json:"related_id,omitempty"`
-	RelatedType    string    `gorm:"type:varchar(50);column:related_type" json:"related_type,omitempty"` // "menu", "comment", etc
+	RelatedType    string    `gorm:"type:varchar(50);column:related_type" json:"related_type,omitempty"` 
 	CreatedAt      time.Time `gorm:"column:created_at" json:"created_at"`
 
 	User User  `gorm:"foreignKey:UserID;references:UserID" json:"User,omitempty"`

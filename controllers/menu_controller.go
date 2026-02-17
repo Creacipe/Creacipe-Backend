@@ -13,20 +13,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// -----------------------------------------
-// -----------------------------------------
-// CreateMenu menangani pembuatan resep baru (DENGAN UPLOAD FILE + TAGS)
+
+// CreateMenu menangani pembuatan resep baru 
 func CreateMenu(c *gin.Context) {
 	// 2. Baca form-data
 	title := c.PostForm("title")
 	description := c.PostForm("description")
-	ingredientsJSON := c.PostForm("ingredients")   // Frontend harus kirim JSON string
-	instructionsJSON := c.PostForm("instructions") // Frontend harus kirim JSON string
+	ingredientsJSON := c.PostForm("ingredients")   
+	instructionsJSON := c.PostForm("instructions") 
 
 	user := c.MustGet("user").(models.User)
-	var finalImageURL string // Variabel untuk menyimpan URL gambar
+	var finalImageURL string 
 
-	// 3. Proses upload file (WAJIB)
+	// 3. Proses upload file 
 	file, err := c.FormFile("image_file")
 
 	if err != nil {
@@ -67,7 +66,7 @@ func CreateMenu(c *gin.Context) {
 		return
 	}
 
-	// --- 5. LOGIKA TAGIDS YANG DIPERBAIKI (DITAMBAHKAN KEMBALI) ---
+	
 	// Ambil TagIDs sebagai string (misal: "1,3,5")
 	tagIDsStr := c.PostForm("tag_ids")
 	if tagIDsStr != "" {
@@ -85,11 +84,10 @@ func CreateMenu(c *gin.Context) {
 			}
 		}
 	}
-	// --------------------------------------------------------
 
-	// --- 6. HELPER LOG TETAP DI SINI ---
+	
 	helpers.CreateLog(user.UserID, "CREATE_MENU", menu.MenuID, "menus")
-	// ------------------------------------
+	
 
 	c.JSON(http.StatusOK, gin.H{"data": menu})
 }
@@ -236,7 +234,7 @@ func GetMenuByID(c *gin.Context) {
 		return
 	}
 	
-	// Hitung total likes, dislikes, dan bookmarks (sama seperti GetPopularMenus)
+	// Hitung total likes, dislikes, dan bookmarks 
 	var totalLikes, totalDislikes int64
 	config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(likes_count), 0)").Scan(&totalLikes)
 	config.DB.Model(&models.MenuVote{}).Where("menu_id = ?", menu.MenuID).Select("IFNULL(SUM(dislikes_count), 0)").Scan(&totalDislikes)
@@ -259,7 +257,7 @@ func GetMenuByID(c *gin.Context) {
 		TotalBookmarks: int(totalBookmarks),
 	}
 	
-	// Kembalikan data menu (frontend yang akan handle logic approved/ownership)
+	// Kembalikan data menu 
 	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
@@ -271,22 +269,16 @@ func UpdateMenu(c *gin.Context) {
 		return
 	}
 
-	// var input models.UpdateMenuInput
-	// if err := c.ShouldBindJSON(&input); err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	// 	return
-	// }
+	
 	
 	user := c.MustGet("user").(models.User)
 
-	// --- PERBAIKAN HAK AKSES ---
-	// Pengecekan menggunakan nama peran yang lebih mudah dibaca.
+
 	if user.UserID != menu.UserID && user.Role.RoleName != "admin" && user.Role.RoleName != "editor" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Anda tidak memiliki akses untuk mengubah resep ini"})
 		return
 	}
 
-	// Baca form-data (seperti CreateMenu)
 	title := c.PostForm("title")
 	description := c.PostForm("description")
 	ingredientsJSON := c.PostForm("ingredients")
@@ -349,10 +341,9 @@ func UpdateMenu(c *gin.Context) {
 		return
 	}
 
-	// --- TAMBAHKAN LOG ---
+	
 	helpers.CreateLog(user.UserID, "UPDATE_MENU", menu.MenuID, "menus")
-	// ---------------------
-	// Reload data menu dengan relasi
+	
 	config.DB.Preload("User").Preload("Tags").First(&menu, menu.MenuID)
 
 
@@ -368,9 +359,8 @@ func DeleteMenu(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(models.User)
-	menuIDtoLog := menu.MenuID // Simpan ID untuk log sebelum dihapus
+	menuIDtoLog := menu.MenuID 
 
-	// --- PERBAIKAN HAK AKSES ---
 	if user.UserID != menu.UserID && user.Role.RoleName != "admin" && user.Role.RoleName != "editor" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Anda tidak memiliki akses untuk menghapus resep ini"})
 		return
@@ -381,9 +371,9 @@ func DeleteMenu(c *gin.Context) {
 		return
 	}
 
-	// --- TAMBAHKAN LOG ---
+	
 	helpers.CreateLog(user.UserID, "DELETE_MENU", menuIDtoLog, "menus")
-	// ---------------------
+	
 
 	c.JSON(http.StatusOK, gin.H{"message": "Resep berhasil dihapus"})
 }
@@ -402,11 +392,11 @@ func GetPopularMenus(c *gin.Context) {
 	}
 	offset := (page - 1) * limit
 
-	// Get total count of approved menus
+	
 	var total int64
 	config.DB.Model(&models.Menu{}).Where("status = ?", "approved").Count(&total)
 
-	// Step 1: Get sorted menu IDs + stats only (no m.*, avoids mapping issues)
+
 	type MenuStat struct {
 		MenuID         uint `gorm:"column:menu_id"`
 		TotalLikes     int  `gorm:"column:total_likes"`
@@ -444,7 +434,7 @@ func GetPopularMenus(c *gin.Context) {
 		return
 	}
 
-	// Step 2: Fetch full menu details via GORM (proper field mapping + Tags)
+	
 	menuIDs := make([]uint, len(menuStats))
 	for i, ms := range menuStats {
 		menuIDs[i] = ms.MenuID
@@ -456,13 +446,13 @@ func GetPopularMenus(c *gin.Context) {
 		return
 	}
 
-	// Create menu map for quick lookup
+	
 	menuMap := make(map[uint]models.Menu)
 	for _, menu := range menus {
 		menuMap[menu.MenuID] = menu
 	}
 
-	// Step 3: Merge stats with menu data, preserving sort order from SQL
+	
 	type PopularResult struct {
 		models.Menu
 		TotalLikes     int `json:"total_likes"`
@@ -517,10 +507,10 @@ func GetMyMenus(c *gin.Context) {
 	}
 	offset := (page - 1) * limit
 
-	// Build query
+	
 	query := config.DB.Model(&models.Menu{}).Where("user_id = ?", user.UserID)
 	
-	// Search filter (case-insensitive)
+
 	if search != "" {
 		searchLower := "%" + strings.ToLower(search) + "%"
 		query = query.Where("LOWER(title) LIKE ? OR LOWER(description) LIKE ?", searchLower, searchLower)
@@ -783,11 +773,11 @@ func GetMyCollection(c *gin.Context) {
 	var bookmarkedMenuIDs []uint
 	config.DB.Table("user_bookmarks").Where("user_id = ?", user.UserID).Pluck("menu_id", &bookmarkedMenuIDs)
 	
-	// Get menu IDs dari resep yang di-like (likes_count > 0)
+	// Get menu IDs dari resep yang di-like 
 	var likedMenuIDs []uint
 	config.DB.Table("menu_votes").Where("user_id = ? AND likes_count > 0", user.UserID).Pluck("menu_id", &likedMenuIDs)
 	
-	// Gabungkan dan deduplikasi IDs (own + bookmarked + liked)
+	// Gabungkan dan deduplikasi IDs 
 	menuIDMap := make(map[uint]bool)
 	for _, id := range myMenuIDs {
 		menuIDMap[id] = true
@@ -815,7 +805,7 @@ func GetMyCollection(c *gin.Context) {
 		return
 	}
 	
-	// Build query for count (case-insensitive search using LOWER)
+	
 	countQuery := config.DB.Model(&models.Menu{}).Where("menu_id IN ?", allMenuIDs)
 	if search != "" {
 		searchLower := "%" + strings.ToLower(search) + "%"
@@ -827,7 +817,7 @@ func GetMyCollection(c *gin.Context) {
 
 	var menus []models.Menu
 	
-	// Build menu query with pagination (case-insensitive search using LOWER)
+	
 	menuQuery := config.DB.Preload("Tags").Where("menu_id IN ?", allMenuIDs)
 	if search != "" {
 		searchLower := "%" + strings.ToLower(search) + "%"
@@ -839,13 +829,12 @@ func GetMyCollection(c *gin.Context) {
 		return
 	}
 	
-	// Collect menu IDs for batch stats query
+	
 	var menuIDs []uint
 	for _, menu := range menus {
 		menuIDs = append(menuIDs, menu.MenuID)
 	}
-	
-	// Batch query for votes stats
+
 	type VoteStat struct {
 		MenuID        uint
 		TotalLikes    int
@@ -860,7 +849,7 @@ func GetMyCollection(c *gin.Context) {
 			Scan(&voteStats)
 	}
 
-	// Batch query for bookmark counts
+	
 	type BookmarkStat struct {
 		MenuID         uint
 		TotalBookmarks int
@@ -874,7 +863,7 @@ func GetMyCollection(c *gin.Context) {
 			Scan(&bookmarkStats)
 	}
 
-	// Create maps for quick lookup
+	
 	voteMap := make(map[uint]VoteStat)
 	for _, v := range voteStats {
 		voteMap[v.MenuID] = v
@@ -884,7 +873,7 @@ func GetMyCollection(c *gin.Context) {
 		bookmarkMap[b.MenuID] = b.TotalBookmarks
 	}
 	
-	// Build results with stats
+
 	type MenuWithStats struct {
 		models.Menu
 		TotalLikes     int `json:"total_likes"`
@@ -903,7 +892,7 @@ func GetMyCollection(c *gin.Context) {
 		})
 	}
 	
-	// Calculate total pages
+	
 	totalPages := int(total) / limit
 	if int(total)%limit != 0 {
 		totalPages++

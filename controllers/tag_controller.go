@@ -13,7 +13,7 @@ import (
 // GetAllTags menampilkan semua tag beserta kategorinya.
 func GetAllTags(c *gin.Context) {
 	var tags []models.Tag
-	// Gunakan Preload("Category") untuk menyertakan detail kategori pada setiap tag.
+	
 	if err := config.DB.Preload("Category").Find(&tags).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data tag"})
 		return
@@ -39,7 +39,7 @@ func CreateTag(c *gin.Context) {
 		return
 	}
 
-	// Catat aktivitas
+	
 	user := c.MustGet("user").(models.User)
 	helpers.CreateLog(user.UserID, "CREATE_TAG", tag.TagID, "tags")
 
@@ -65,7 +65,7 @@ func UpdateTag(c *gin.Context) {
 		return
 	}
 	
-	// Catat aktivitas
+	
 	user := c.MustGet("user").(models.User)
 	helpers.CreateLog(user.UserID, "UPDATE_TAG", tag.TagID, "tags")
 
@@ -80,14 +80,13 @@ func DeleteTag(c *gin.Context) {
 		return
 	}
 	
-	tagIDtoLog := tag.TagID // Simpan ID untuk log
-
+	tagIDtoLog := tag.TagID 
 	if err := config.DB.Delete(&tag).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus tag"})
 		return
 	}
 
-	// Catat aktivitas
+	
 	user := c.MustGet("user").(models.User)
 	helpers.CreateLog(user.UserID, "DELETE_TAG", tagIDtoLog, "tags")
 

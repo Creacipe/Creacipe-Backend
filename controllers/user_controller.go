@@ -16,7 +16,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// --- FUNGSI BARU UNTUK ADMIN ---
 
 // AdminCreateUser membuat user baru dengan peran spesifik.
 func AdminCreateUser(c *gin.Context) {
@@ -32,7 +31,7 @@ func AdminCreateUser(c *gin.Context) {
 		return
 	}
 
-	// Validasi role exists
+	
 	var role models.Role
 	if err := config.DB.First(&role, input.RoleID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Role tidak ditemukan"})
@@ -57,11 +56,10 @@ func AdminCreateUser(c *gin.Context) {
 	profile := models.UserProfile{UserID: user.UserID}
 	config.DB.Create(&profile)
 
-	// Log aktivitas
 	admin := c.MustGet("user").(models.User)
 	helpers.CreateLog(admin.UserID, "CREATE_USER", user.UserID, "users")
 
-	// Reload user dengan relasi
+	
 	config.DB.Preload("Role").First(&user, user.UserID)
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -120,8 +118,6 @@ func UpdateUser(c *gin.Context) {
 
 
 
-//--------------------------------------// USER PROFILE CONTROLLERS //--------------------------------------//
-
 // GetMyProfile menampilkan data lengkap dari pengguna yang sedang login.
 func GetMyProfile(c *gin.Context) {
 	userCtx, _ := c.Get("user")
@@ -144,7 +140,6 @@ func UpdateMyProfile(c *gin.Context) {
 	bio := c.PostForm("bio")
 	
 	// Update nama di tabel 'users' jika ada perubahan
-	// Note: Email TIDAK bisa diubah di sini, gunakan endpoint change-email
 	if name != "" {
 		config.DB.Model(&user).Update("name", name)
 	}
@@ -153,7 +148,7 @@ func UpdateMyProfile(c *gin.Context) {
 	var profile models.UserProfile
 	config.DB.FirstOrInit(&profile, models.UserProfile{UserID: user.UserID})
 	
-	// Update bio - pastikan update meskipun kosong
+	// Update bio 
 	profile.Bio = bio
 	
 	// Debug log
@@ -190,15 +185,13 @@ func UpdateMyProfile(c *gin.Context) {
 	
 	fmt.Printf("Profile saved successfully: bio='%s', picture='%s'\n", profile.Bio, profile.ProfilePictureURL)
 	
-	// Catat di log
+	
 	helpers.CreateLog(user.UserID, "UPDATE_PROFILE", user.UserID, "users")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Profil berhasil diperbarui"})
 }
 
-//--------------------------------------// ADMIN USER MANAGEMENT //--------------------------------------//
 
-// --- FUNGSI BARU UNTUK AKTIF/NONAKTIF ---
 
 // DeactivateUser mengubah status user menjadi 'inactive'.
 func DeactivateUser(c *gin.Context) {
@@ -218,13 +211,12 @@ func DeactivateUser(c *gin.Context) {
 func ActivateUser(c *gin.Context) {
     var user models.User
 
-    // --- PERBAIKAN DI SINI ---
-    // Gunakan GORM secara langsung, ia akan otomatis mencari berdasarkan primary key 'user_id'
+    
 	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
 		return
 	}
-    // -------------------------
+
     
 	config.DB.Model(&user).Update("status_user", "active")
 	admin := c.MustGet("user").(models.User)
@@ -232,7 +224,6 @@ func ActivateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil diaktifkan"})
 }
 
-// --- FUNGSI TAMBAHAN UNTUK DASHBOARD ADMIN ---
 
 // GetAllUsers mengambil semua pengguna dengan informasi lengkap
 func GetAllUsers(c *gin.Context) {
@@ -275,7 +266,6 @@ func UpdateUserRole(c *gin.Context) {
 		return
 	}
 
-	// Validasi role exists
 	var role models.Role
 	if err := config.DB.First(&role, input.RoleID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Role tidak ditemukan"})
@@ -292,7 +282,6 @@ func UpdateUserRole(c *gin.Context) {
 	admin := c.MustGet("user").(models.User)
 	helpers.CreateLog(admin.UserID, "UPDATE_USER_ROLE", user.UserID, "users")
 
-	// Reload user dengan role
 	config.DB.Preload("Role").First(&user, user.UserID)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -311,7 +300,6 @@ func GetUserRelatedData(c *gin.Context) {
 		return
 	}
 
-	// Hitung data terkait
 	var menusCount int64
 	var commentsCount int64
 	var votesCount int64
@@ -335,7 +323,7 @@ func GetUserRelatedData(c *gin.Context) {
 	})
 }
 
-// DeleteUser menghapus user beserta semua data terkaitnya (Cascade Delete)
+// DeleteUser menghapus user beserta semua data terkaitnya 
 func DeleteUser(c *gin.Context) {
 	var user models.User
 	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
@@ -361,10 +349,9 @@ func DeleteUser(c *gin.Context) {
 	userIDtoLog := user.UserID
 	userIDtoDelete := user.UserID
 
-	// Mulai transaksi untuk cascade delete
 	tx := config.DB.Begin()
 
-	// 1. Hapus user_bookmarks (many-to-many junction table)
+	// 1. Hapus user_bookmarks 
 	if err := tx.Exec("DELETE FROM user_bookmarks WHERE user_id = ?", userIDtoDelete).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus bookmark pengguna"})
@@ -378,10 +365,10 @@ func DeleteUser(c *gin.Context) {
 		return
 	}
 
-	// 3. Hapus comments (termasuk replies - hapus yang parent_id nya adalah comment milik user ini juga)
-	// Hapus replies terlebih dahulu, lalu parent comments
+	// 3. Hapus comments 
+	
 	if err := tx.Exec("DELETE FROM comments WHERE parent_id IN (SELECT comment_id FROM (SELECT comment_id FROM comments WHERE user_id = ?) AS subquery)", userIDtoDelete).Error; err != nil {
-		// Ignore error jika tidak ada replies
+		
 	}
 	if err := tx.Where("user_id = ?", userIDtoDelete).Delete(&models.Comment{}).Error; err != nil {
 		tx.Rollback()
@@ -390,23 +377,23 @@ func DeleteUser(c *gin.Context) {
 	}
 
 	// 4. Hapus menus beserta relasinya
-	// 4a. Hapus menu_tags junction table
+	
 	if err := tx.Exec("DELETE FROM menu_tags WHERE menu_id IN (SELECT menu_id FROM menus WHERE user_id = ?)", userIDtoDelete).Error; err != nil {
-		// Ignore error jika tidak ada tags
+		
 	}
-	// 4b. Hapus comments di menu milik user ini
+	
 	if err := tx.Exec("DELETE FROM comments WHERE menu_id IN (SELECT menu_id FROM menus WHERE user_id = ?)", userIDtoDelete).Error; err != nil {
-		// Ignore error
+		
 	}
-	// 4c. Hapus votes di menu milik user ini
+	
 	if err := tx.Exec("DELETE FROM menu_votes WHERE menu_id IN (SELECT menu_id FROM menus WHERE user_id = ?)", userIDtoDelete).Error; err != nil {
-		// Ignore error
+		
 	}
-	// 4d. Hapus bookmarks ke menu milik user ini
+	
 	if err := tx.Exec("DELETE FROM user_bookmarks WHERE menu_id IN (SELECT menu_id FROM menus WHERE user_id = ?)", userIDtoDelete).Error; err != nil {
-		// Ignore error
+		
 	}
-	// 4e. Hapus menus
+	// Hapus menus
 	if err := tx.Where("user_id = ?", userIDtoDelete).Delete(&models.Menu{}).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus resep pengguna"})
@@ -415,20 +402,20 @@ func DeleteUser(c *gin.Context) {
 
 	// 5. Hapus user_profile
 	if err := tx.Where("user_id = ?", userIDtoDelete).Delete(&models.UserProfile{}).Error; err != nil {
-		// Profile mungkin tidak ada, ignore error
+		
 	}
 
-	// 6. Hapus notifications terkait user ini (jika ada)
+	// 6. Hapus notifications terkait user ini 
 	if err := tx.Exec("DELETE FROM notifications WHERE user_id = ? OR actor_id = ?", userIDtoDelete, userIDtoDelete).Error; err != nil {
-		// Ignore error jika tabel tidak ada atau tidak ada data
+		
 	}
 
 	// 7. Hapus password_resets
 	if err := tx.Exec("DELETE FROM password_resets WHERE user_id = ?", userIDtoDelete).Error; err != nil {
-		// Ignore error
+		
 	}
 
-	// 8. Terakhir, hapus user
+	// 8. hapus user
 	if err := tx.Delete(&user).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus pengguna"})
@@ -457,11 +444,11 @@ func GetAllRoles(c *gin.Context) {
 
 // GetActivityLogs mengambil log aktivitas sistem dengan pagination (Admin only)
 func GetActivityLogs(c *gin.Context) {
-	// Pagination parameters
+	
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	search := strings.TrimSpace(c.Query("search"))
-	dateFilter := c.Query("date_filter") // today, week, month, year, custom
+	dateFilter := c.Query("date_filter") 
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 	
@@ -476,10 +463,10 @@ func GetActivityLogs(c *gin.Context) {
 	var logs []models.LogActivity
 	var total int64
 	
-	// Build query
+	
 	query := config.DB.Model(&models.LogActivity{})
 	
-	// Apply date filter
+	
 	now := time.Now()
 	switch dateFilter {
 	case "today":
@@ -500,8 +487,7 @@ func GetActivityLogs(c *gin.Context) {
 		}
 	}
 	
-	// Apply search filter (case-insensitive search in action or target_type)
-	// Also search in user name via subquery
+	
 	if search != "" {
 		searchLower := "%" + strings.ToLower(search) + "%"
 		query = query.Where(
@@ -510,10 +496,10 @@ func GetActivityLogs(c *gin.Context) {
 		)
 	}
 	
-	// Get count (only for filtered queries to avoid full scan)
+	
 	query.Count(&total)
 	
-	// Fetch logs with pagination
+	
 	if err := query.
 		Preload("User").
 		Order("created_at DESC").
@@ -524,7 +510,7 @@ func GetActivityLogs(c *gin.Context) {
 		return
 	}
 	
-	// Calculate total pages
+	
 	totalPages := 1
 	if total > 0 {
 		totalPages = int(total) / limit

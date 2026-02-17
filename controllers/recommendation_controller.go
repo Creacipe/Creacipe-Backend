@@ -19,12 +19,12 @@ import (
 func getMLServiceURL() string {
 	mlURL := os.Getenv("ML_SERVICE_URL")
 	if mlURL == "" {
-		mlURL = "http://localhost:5000" // fallback for local development
+		mlURL = "http://localhost:5000" 
 	}
 	return mlURL
 }
 
-// GetRecommendations (by Title) - Mendapatkan resep serupa.
+// GetRecommendations  - Mendapatkan resep serupa.
 func GetRecommendations(c *gin.Context) {
 	// 1. Ambil menu_id dari URL.
 	menuID := c.Param("id")
@@ -87,7 +87,7 @@ func GetRecommendations(c *gin.Context) {
 	}
 	log.Printf("[DEBUG-REC] Titles dari Python: %d items", len(recommendedTitles))
 	for i, t := range recommendedTitles {
-		if i < 5 { // Log first 5
+		if i < 5 { 
 			log.Printf("[DEBUG-REC]   [%d] '%s'", i, t)
 		}
 	}

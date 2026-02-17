@@ -75,8 +75,6 @@ func DeleteCategory(c *gin.Context) {
 	
 	categoryIDtoLog := category.CategoryID
 
-	// Catatan: Jika ada tag yang masih menggunakan kategori ini, penghapusan bisa gagal
-	// tergantung konfigurasi database. Penanganan lebih lanjut mungkin diperlukan.
 	if err := config.DB.Delete(&category).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus kategori, pastikan tidak ada tag yang menggunakannya"})
 		return

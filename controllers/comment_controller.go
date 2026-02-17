@@ -31,44 +31,36 @@ func CreateComment(c *gin.Context) {
 		return
 	}
 
-	// Variabel penampung logika
 	var finalParentID *uint     
 	var notificationUserID uint 
 
-	// 3. Logika Penentuan Parent & Notifikasi
 	if input.ParentID != nil {
-		// --- KASUS REPLY (BALASAN) ---
 		var targetComment models.Comment
 		
-		// Cari komentar yang sedang dibalas
 		if err := config.DB.First(&targetComment, *input.ParentID).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Komentar yang direply tidak ditemukan"})
 			return
 		}
 
-		// Validasi: Pastikan komentar target ada di menu yang sama
 		if targetComment.MenuID != menu.MenuID {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Komentar tidak valid untuk resep ini"})
 			return
 		}
-		// A. Tentukan Penerima Notifikasi
+
 		notificationUserID = targetComment.UserID
 
-		// B. Tentukan Struktur Database (Flattening):
-		// Jika komentar yang dibalas SUDAH punya parent (artinya dia adalah reply),
-		// maka komentar baru kita harus nempel ke Parent-nya dia (Root).
+
 		if targetComment.ParentID != nil {
 			finalParentID = targetComment.ParentID
 		} else {
-			// Jika komentar yang dibalas adalah Root (ParentID nil),
-			// maka kita nempel langsung ke dia.
+			
 			finalParentID = input.ParentID
 		}
 
 	} else {
-		// --- KASUS KOMENTAR BARU (ROOT) ---
+	
 		finalParentID = nil
-		// Notifikasi dikirim ke Pemilik Resep
+	
 		if menu.UserID != user.UserID {
 			notificationUserID = menu.UserID
 		}
@@ -78,7 +70,7 @@ func CreateComment(c *gin.Context) {
 	comment := models.Comment{
 		MenuID:      menu.MenuID,
 		UserID:      user.UserID,
-		ParentID:    finalParentID, // Gunakan ID yang sudah diluruskan logic-nya
+		ParentID:    finalParentID, 
 		CommentText: input.CommentText,
 	}
 
@@ -87,8 +79,7 @@ func CreateComment(c *gin.Context) {
 		return
 	}
 
-	// 5. Kirim Notifikasi (Jika perlu)
-	// Hanya kirim jika penerima bukan diri sendiri
+	
 	if notificationUserID != 0 && notificationUserID != user.UserID {
 		var notifMessage string
 		var notifTitle string
@@ -119,20 +110,19 @@ func CreateComment(c *gin.Context) {
 	})
 }
 
-// GetCommentsByMenu - Get semua komentar untuk suatu resep (dengan nested replies)
+// GetCommentsByMenu - Get semua komentar untuk suatu resep 
 func GetCommentsByMenu(c *gin.Context) {
 	menuID := c.Param("id")
 
-	// Cek apakah kolom parent_id ada (untuk backward compatibility)
+	
 	var comments []models.Comment
 	var err error
 	
-	// Coba query dengan parent_id filter
+	
 	err = config.DB.Where("menu_id = ? AND (parent_id IS NULL OR parent_id = 0)", menuID).
 		Order("created_at DESC").
 		Find(&comments).Error
 	
-	// Jika error karena kolom tidak ada, fallback ke query tanpa parent_id
 	if err != nil {
 		err = config.DB.Where("menu_id = ?", menuID).
 			Order("created_at DESC").
@@ -154,11 +144,11 @@ func GetCommentsByMenu(c *gin.Context) {
 			avatar = user.Profile.ProfilePictureURL
 		}
 
-		// Get replies untuk comment ini (jika kolom parent_id ada)
+		
 		var replies []models.Comment
 		var repliesWithUser []models.CommentWithUser
 		
-		// Try to get replies, ignore error jika kolom belum ada
+		
 		err := config.DB.Where("parent_id = ?", comment.CommentID).
 			Order("created_at ASC").
 			Find(&replies).Error
@@ -215,6 +205,6 @@ func DeleteComment(c *gin.Context) {
 		return
 	}
 
-	// 4. Berikan respon sukses
+
 	c.JSON(http.StatusOK, gin.H{"message": "Komentar berhasil dihapus"})
 }

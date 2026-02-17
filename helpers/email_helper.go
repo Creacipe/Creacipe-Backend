@@ -46,7 +46,7 @@ func GenerateVerificationCode() string {
 	max := big.NewInt(999999)
 	n, err := rand.Int(rand.Reader, max)
 	if err != nil {
-		// Fallback jika crypto/rand gagal
+		
 		return fmt.Sprintf("%06d", time.Now().UnixNano()%1000000)
 	}
 	return fmt.Sprintf("%06d", n.Int64())
@@ -56,7 +56,6 @@ func GenerateVerificationCode() string {
 func SendVerificationEmail(toEmail, toName, verificationCode, purpose string) error {
 	config := GetEmailConfig()
 
-	// BYPASS untuk testing - jika API key adalah "test-key", skip sending email
 	if config.APIKey == "test-key" {
 		return nil
 	}

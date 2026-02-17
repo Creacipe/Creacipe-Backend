@@ -23,14 +23,14 @@ type Menu struct {
 	Tags     []*Tag     `gorm:"many2many:menu_tags;foreignKey:MenuID;joinForeignKey:menu_id;References:TagID;joinReferences:tag_id" json:"tags,omitempty"`
 }
 
-// --- Struct Input didefinisikan di sini ---
+
 type CreateMenuInput struct {
 	Title        string `json:"title" binding:"required"`
 	Description  string `json:"description"`
 	Ingredients  string `json:"ingredients" binding:"required"`
 	Instructions string `json:"instructions" binding:"required"`
 	ImageURL     string `json:"image_url"`
-	TagIDs       []uint `json:"tag_ids"` // TAMBAHKAN INI
+	TagIDs       []uint `json:"tag_ids"` 
 }
 
 type UpdateMenuInput struct {
