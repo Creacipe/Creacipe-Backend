@@ -13,7 +13,6 @@ import (
 )
 
 func init() {
-	// Load .env file if it exists (optional for production)
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Info: .env file tidak ditemukan, menggunakan environment variables dari sistem")
@@ -23,11 +22,11 @@ func init() {
 
 func main() {
 	r := gin.Default()
-	// --- Penyajian File Statis untuk Aset (Gambar, dll) ---
+	
 	os.MkdirAll("./assets", os.ModePerm)
-	// Sajikan folder 'assets' di URL '/assets'
+	
 	r.Static("/assets", "./assets")
-	// ---------------------------------
+	
 
 	r.Use(config.CORSMiddleware())
 
