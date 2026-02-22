@@ -9,7 +9,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CreateComment - User membuat komentar di resep
+// CreateComment godoc
+// @Summary Tambah komentar
+// @Description Membuat komentar di resep. Bisa reply komentar lain dengan parent_id
+// @Tags Komentar
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID resep"
+// @Param body body object{comment_text=string,parent_id=int} true "Data komentar"
+// @Success 201 {object} map[string]interface{}
+// @Failure 404 {object} map[string]string
+// @Router /menus/{id}/comments [post]
 func CreateComment(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	menuID := c.Param("id")
@@ -110,7 +121,15 @@ func CreateComment(c *gin.Context) {
 	})
 }
 
-// GetCommentsByMenu - Get semua komentar untuk suatu resep 
+// GetCommentsByMenu godoc
+// @Summary Ambil komentar
+// @Description Mengambil semua komentar untuk suatu resep (termasuk replies nested)
+// @Tags Komentar
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID resep"
+// @Success 200 {object} map[string]interface{}
+// @Router /menus/{id}/comments [get]
 func GetCommentsByMenu(c *gin.Context) {
 	menuID := c.Param("id")
 
@@ -183,7 +202,16 @@ func GetCommentsByMenu(c *gin.Context) {
 	})
 }
 
-// DeleteComment
+// DeleteComment godoc
+// @Summary Hapus komentar
+// @Description Menghapus komentar milik sendiri
+// @Tags Komentar
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID komentar"
+// @Success 200 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Router /comments/{id} [delete]
 func DeleteComment(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	commentID, _ := strconv.Atoi(c.Param("id"))

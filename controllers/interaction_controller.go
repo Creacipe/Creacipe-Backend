@@ -3,14 +3,25 @@ package controllers
 
 import (
 	"creacipe-backend/config"
-	"creacipe-backend/helpers" 
+	"creacipe-backend/helpers"
 	"creacipe-backend/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-// AddTagToMenu menangani logika penambahan tag ke sebuah resep.
+// AddTagToMenu godoc
+// @Summary Tambahkan tag ke resep
+// @Description Menambahkan tag ke sebuah resep
+// @Tags Interaksi
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID resep"
+// @Param body body models.AddTagInput true "Tag ID"
+// @Success 200 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /menus/{id}/tags [post]
 func AddTagToMenu(c *gin.Context) {
 	var menu models.Menu
 	if err := config.DB.First(&menu, c.Param("id")).Error; err != nil {
@@ -40,7 +51,15 @@ func AddTagToMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Tag berhasil ditambahkan ke resep"})
 }
 
-// BookmarkMenu menangani penambahan resep ke daftar bookmark pengguna.
+// BookmarkMenu godoc
+// @Summary Bookmark resep
+// @Description Menambahkan resep ke daftar bookmark user
+// @Tags Interaksi
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID resep"
+// @Success 200 {object} map[string]string
+// @Router /menus/{id}/bookmark [post]
 func BookmarkMenu(c *gin.Context) {
 	var menu models.Menu
 	if err := config.DB.First(&menu, c.Param("id")).Error; err != nil {
@@ -60,7 +79,15 @@ func BookmarkMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Resep berhasil di-bookmark"})
 }
 
-// UnbookmarkMenu menangani penghapusan resep dari daftar bookmark.
+// UnbookmarkMenu godoc
+// @Summary Hapus bookmark
+// @Description Menghapus resep dari daftar bookmark user
+// @Tags Interaksi
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID resep"
+// @Success 200 {object} map[string]string
+// @Router /menus/{id}/bookmark [delete]
 func UnbookmarkMenu(c *gin.Context) {
 	var menu models.Menu
 	if err := config.DB.First(&menu, c.Param("id")).Error; err != nil {
@@ -161,17 +188,41 @@ func handleVote(c *gin.Context, voteType string) {
 	})
 }
 
-// LikeMenu menangani saat user menekan tombol 'like'.
+// LikeMenu godoc
+// @Summary Like resep
+// @Description Like/unlike resep (toggle)
+// @Tags Interaksi
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID resep"
+// @Success 200 {object} map[string]interface{}
+// @Router /menus/{id}/like [post]
 func LikeMenu(c *gin.Context) {
 	handleVote(c, "like")
 }
 
-// DislikeMenu menangani saat user menekan tombol 'dislike'.
+// DislikeMenu godoc
+// @Summary Dislike resep
+// @Description Dislike/un-dislike resep (toggle)
+// @Tags Interaksi
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID resep"
+// @Success 200 {object} map[string]interface{}
+// @Router /menus/{id}/dislike [post]
 func DislikeMenu(c *gin.Context) {
 	handleVote(c, "dislike")
 }
 
-// GetUserInteractionStatus mendapatkan status like/dislike/bookmark user untuk sebuah menu
+// GetUserInteractionStatus godoc
+// @Summary Status interaksi
+// @Description Cek status like/dislike/bookmark user terhadap resep
+// @Tags Interaksi
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID resep"
+// @Success 200 {object} map[string]interface{}
+// @Router /menus/{id}/interaction-status [get]
 func GetUserInteractionStatus(c *gin.Context) {
 	var menu models.Menu
 	if err := config.DB.First(&menu, c.Param("id")).Error; err != nil {

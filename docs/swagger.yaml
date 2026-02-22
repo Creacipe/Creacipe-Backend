@@ -1,0 +1,1784 @@
+basePath: /api
+definitions:
+  models.AddTagInput:
+    properties:
+      tag_id:
+        type: integer
+    required:
+    - tag_id
+    type: object
+  models.CreateCategoryInput:
+    properties:
+      category_name:
+        type: string
+    required:
+    - category_name
+    type: object
+  models.CreateTagInput:
+    properties:
+      category_id:
+        type: integer
+      tag_name:
+        type: string
+    required:
+    - category_id
+    - tag_name
+    type: object
+  models.LoginInput:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      recaptcha_token:
+        type: string
+    required:
+    - email
+    - password
+    - recaptcha_token
+    type: object
+  models.RegisterInput:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      recaptcha_token:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - recaptcha_token
+    type: object
+  models.UpdateCategoryInput:
+    properties:
+      category_name:
+        type: string
+    required:
+    - category_name
+    type: object
+  models.UpdateMenuStatusInput:
+    properties:
+      rejection_reason:
+        type: string
+      status:
+        enum:
+        - approved
+        - rejected
+        type: string
+    required:
+    - status
+    type: object
+  models.UpdateTagInput:
+    properties:
+      category_id:
+        type: integer
+      tag_name:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API Backend untuk aplikasi Creacipe - Platform berbagi resep masakan.
+  title: Creacipe API
+  version: "1.0"
+paths:
+  /admin/evaluation/logs:
+    get:
+      description: Mengambil log evaluasi ML service real-time (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Log evaluasi ML
+      tags:
+      - Admin
+  /admin/logs:
+    get:
+      description: Mengambil log aktivitas sistem dengan pagination (admin only)
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Log aktivitas
+      tags:
+      - Admin
+  /admin/reporting/activity-log-stats:
+    get:
+      description: Statistik aktivitas harian berdasarkan log
+      parameters:
+      - description: Tanggal mulai (YYYY-MM-DD)
+        in: query
+        name: startDate
+        type: string
+      - description: Tanggal akhir (YYYY-MM-DD)
+        in: query
+        name: endDate
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Statistik aktivitas harian
+      tags:
+      - Reporting
+  /admin/reporting/growth-stats:
+    get:
+      description: Statistik pertumbuhan user dan resep harian
+      parameters:
+      - description: Tanggal mulai (YYYY-MM-DD)
+        in: query
+        name: startDate
+        type: string
+      - description: Tanggal akhir (YYYY-MM-DD)
+        in: query
+        name: endDate
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Statistik pertumbuhan
+      tags:
+      - Reporting
+  /admin/reporting/recipe-stats:
+    get:
+      description: Statistik jumlah resep (pending/approved/rejected)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Statistik resep
+      tags:
+      - Reporting
+  /admin/reporting/top-bookmarked-recipes:
+    get:
+      description: Top 5 resep dengan bookmark terbanyak
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Top resep di-bookmark
+      tags:
+      - Reporting
+  /admin/reporting/top-liked-recipes:
+    get:
+      description: Top 5 resep dengan like terbanyak
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Top resep disukai
+      tags:
+      - Reporting
+  /admin/reporting/top-tags:
+    get:
+      description: Top 10 tag yang paling banyak digunakan
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Top tags
+      tags:
+      - Reporting
+  /admin/roles:
+    get:
+      description: Mengambil semua role yang tersedia (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Ambil semua role
+      tags:
+      - Admin
+  /admin/users:
+    get:
+      description: Mengambil semua user dengan informasi lengkap (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Ambil semua user
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      description: Membuat user baru dengan role spesifik (admin only)
+      parameters:
+      - description: Data user baru
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            name:
+              type: string
+            password:
+              type: string
+            role_id:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Admin buat user baru
+      tags:
+      - Admin
+  /admin/users/{id}:
+    delete:
+      description: Menghapus user beserta semua data terkaitnya (admin only)
+      parameters:
+      - description: ID user
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Hapus user
+      tags:
+      - Admin
+    get:
+      description: Mengambil detail satu user (admin only)
+      parameters:
+      - description: ID user
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Detail user
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      description: Mengubah data user (admin only)
+      parameters:
+      - description: ID user
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data update
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            name:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update data user
+      tags:
+      - Admin
+  /admin/users/{id}/activate:
+    patch:
+      description: Mengubah status user menjadi active (admin only)
+      parameters:
+      - description: ID user
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Aktifkan user
+      tags:
+      - Admin
+  /admin/users/{id}/deactivate:
+    patch:
+      description: Mengubah status user menjadi inactive (admin only)
+      parameters:
+      - description: ID user
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Nonaktifkan user
+      tags:
+      - Admin
+  /admin/users/{id}/related-data:
+    get:
+      description: Mengambil jumlah data terkait user sebelum delete (admin only)
+      parameters:
+      - description: ID user
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Data terkait user
+      tags:
+      - Admin
+  /admin/users/{id}/role:
+    patch:
+      consumes:
+      - application/json
+      description: Mengubah role user (admin only)
+      parameters:
+      - description: ID user
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Role ID baru
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            role_id:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Ubah role user
+      tags:
+      - Admin
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Mendapatkan access token baru menggunakan refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            refresh_token:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh access token
+      tags:
+      - Auth
+  /categories:
+    get:
+      description: Mengambil semua kategori tag
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Ambil semua kategori
+      tags:
+      - Kategori
+  /comments/{id}:
+    delete:
+      description: Menghapus komentar milik sendiri
+      parameters:
+      - description: ID komentar
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Hapus komentar
+      tags:
+      - Komentar
+  /editor/categories:
+    post:
+      consumes:
+      - application/json
+      description: Membuat kategori tag baru (admin/editor only)
+      parameters:
+      - description: Data kategori
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateCategoryInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Buat kategori baru
+      tags:
+      - Kategori
+  /editor/categories/{id}:
+    delete:
+      description: Menghapus kategori (admin/editor only)
+      parameters:
+      - description: ID kategori
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Hapus kategori
+      tags:
+      - Kategori
+    put:
+      consumes:
+      - application/json
+      description: Mengubah kategori yang ada (admin/editor only)
+      parameters:
+      - description: ID kategori
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data kategori
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateCategoryInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update kategori
+      tags:
+      - Kategori
+  /editor/dashboard/stats:
+    get:
+      description: Mengambil statistik untuk dashboard editor/admin
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Statistik dashboard
+      tags:
+      - Editor
+  /editor/menus:
+    get:
+      description: Menampilkan semua resep untuk moderasi (semua status)
+      parameters:
+      - description: 'Filter: pending, approved, rejected'
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Semua resep (moderasi)
+      tags:
+      - Editor
+  /editor/menus/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Mengubah status resep (approve/reject) oleh editor/admin
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status baru
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateMenuStatusInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Approve/reject resep
+      tags:
+      - Editor
+  /editor/menus/pending:
+    get:
+      description: Menampilkan resep yang menunggu persetujuan
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Resep pending
+      tags:
+      - Editor
+  /editor/tags:
+    post:
+      consumes:
+      - application/json
+      description: Membuat tag baru (admin/editor only)
+      parameters:
+      - description: Data tag
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateTagInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Buat tag baru
+      tags:
+      - Tag
+  /editor/tags/{id}:
+    delete:
+      description: Menghapus tag (admin/editor only)
+      parameters:
+      - description: ID tag
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Hapus tag
+      tags:
+      - Tag
+    put:
+      consumes:
+      - application/json
+      description: Mengubah tag yang ada (admin/editor only)
+      parameters:
+      - description: ID tag
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data tag
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateTagInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update tag
+      tags:
+      - Tag
+  /forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Kirim kode OTP ke email untuk reset password tanpa perlu login
+      parameters:
+      - description: Email terdaftar
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Forgot password (tanpa login)
+      tags:
+      - Auth
+  /forgot-password/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verifikasi kode OTP dan reset password tanpa perlu login
+      parameters:
+      - description: Data reset
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            new_password:
+              type: string
+            verification_code:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Verifikasi forgot password (tanpa login)
+      tags:
+      - Auth
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Login dengan email dan password
+      parameters:
+      - description: Data login
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - Auth
+  /me:
+    get:
+      description: Mengambil data lengkap profil user yang login
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Profil saya
+      tags:
+      - Profil
+    put:
+      consumes:
+      - multipart/form-data
+      description: Mengupdate profil user yang login (multipart/form-data)
+      parameters:
+      - description: Nama
+        in: formData
+        name: name
+        type: string
+      - description: Bio
+        in: formData
+        name: bio
+        type: string
+      - description: Foto profil
+        in: formData
+        name: image_file
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update profil saya
+      tags:
+      - Profil
+  /me/bookmarks:
+    get:
+      description: Mengambil semua resep yang di-bookmark oleh user yang login
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 12
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      - description: Cari berdasarkan judul
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Bookmark saya
+      tags:
+      - Menu
+  /me/collection:
+    get:
+      description: Gabungan resep yang dibuat + bookmark user dengan pagination
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 12
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      - description: Cari berdasarkan judul
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Koleksi saya
+      tags:
+      - Menu
+  /me/menus:
+    get:
+      description: Mengambil semua resep yang dibuat oleh user yang login
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 12
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      - description: Cari berdasarkan judul
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Resep saya
+      tags:
+      - Menu
+  /me/notifications:
+    get:
+      description: Mengambil notifikasi user yang login dengan pagination
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      - description: 'Filter: true/false'
+        in: query
+        name: is_read
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Ambil notifikasi
+      tags:
+      - Notifikasi
+  /me/notifications/{id}/read:
+    patch:
+      description: Menandai satu notifikasi sebagai sudah dibaca
+      parameters:
+      - description: ID notifikasi
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Tandai notifikasi dibaca
+      tags:
+      - Notifikasi
+  /me/notifications/mark-all-read:
+    patch:
+      description: Menandai semua notifikasi user sebagai sudah dibaca
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Tandai semua notifikasi dibaca
+      tags:
+      - Notifikasi
+  /me/notifications/unread-count:
+    get:
+      description: Mengambil jumlah notifikasi yang belum dibaca
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Hitung notifikasi belum dibaca
+      tags:
+      - Notifikasi
+  /me/recommendations:
+    get:
+      description: Mendapatkan rekomendasi resep personal berdasarkan riwayat like
+        & bookmark
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Rekomendasi personal
+      tags:
+      - Rekomendasi
+  /me/request-email-change:
+    post:
+      consumes:
+      - application/json
+      description: Kirim kode verifikasi ke email baru
+      parameters:
+      - description: Email baru
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            new_email:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Request ubah email
+      tags:
+      - Password & Email
+  /me/request-password-reset:
+    post:
+      consumes:
+      - application/json
+      description: Kirim kode verifikasi ke email untuk reset password
+      parameters:
+      - description: Password saat ini
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            current_password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Request reset password (authenticated)
+      tags:
+      - Password & Email
+  /me/verify-email-change:
+    post:
+      consumes:
+      - application/json
+      description: Memverifikasi kode OTP dan mengubah email
+      parameters:
+      - description: Kode verifikasi
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            verification_code:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Verifikasi dan ubah email
+      tags:
+      - Password & Email
+  /me/verify-reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Memverifikasi kode OTP dan mengubah password
+      parameters:
+      - description: Kode verifikasi dan password baru
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            new_password:
+              type: string
+            verification_code:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Verifikasi dan reset password
+      tags:
+      - Password & Email
+  /menus:
+    get:
+      description: Mengambil daftar resep yang sudah disetujui dengan pagination dan
+        search
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 12
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      - description: Cari berdasarkan judul
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Ambil semua resep
+      tags:
+      - Menu
+    post:
+      consumes:
+      - multipart/form-data
+      description: Membuat resep baru dengan upload gambar (multipart/form-data)
+      parameters:
+      - description: Judul resep
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: Deskripsi resep
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Bahan-bahan (JSON)
+        in: formData
+        name: ingredients
+        required: true
+        type: string
+      - description: Langkah-langkah (JSON)
+        in: formData
+        name: instructions
+        required: true
+        type: string
+      - description: Gambar resep
+        in: formData
+        name: image_file
+        required: true
+        type: file
+      - description: 'Tag IDs (comma separated, misal: 1,2,3)'
+        in: formData
+        name: tag_ids
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Buat resep baru
+      tags:
+      - Menu
+  /menus/{id}:
+    delete:
+      description: Menghapus resep (hanya pemilik atau moderator)
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Hapus resep
+      tags:
+      - Menu
+    get:
+      description: Mengambil detail satu resep berdasarkan ID
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Detail resep
+      tags:
+      - Menu
+    put:
+      consumes:
+      - multipart/form-data
+      description: Mengupdate data resep (hanya pemilik atau moderator)
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Judul resep
+        in: formData
+        name: title
+        type: string
+      - description: Deskripsi
+        in: formData
+        name: description
+        type: string
+      - description: Bahan-bahan
+        in: formData
+        name: ingredients
+        type: string
+      - description: Langkah-langkah
+        in: formData
+        name: instructions
+        type: string
+      - description: Gambar baru
+        in: formData
+        name: image_file
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update resep
+      tags:
+      - Menu
+  /menus/{id}/bookmark:
+    delete:
+      description: Menghapus resep dari daftar bookmark user
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Hapus bookmark
+      tags:
+      - Interaksi
+    post:
+      description: Menambahkan resep ke daftar bookmark user
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Bookmark resep
+      tags:
+      - Interaksi
+  /menus/{id}/comments:
+    get:
+      description: Mengambil semua komentar untuk suatu resep (termasuk replies nested)
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Ambil komentar
+      tags:
+      - Komentar
+    post:
+      consumes:
+      - application/json
+      description: Membuat komentar di resep. Bisa reply komentar lain dengan parent_id
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data komentar
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            comment_text:
+              type: string
+            parent_id:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Tambah komentar
+      tags:
+      - Komentar
+  /menus/{id}/dislike:
+    post:
+      description: Dislike/un-dislike resep (toggle)
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Dislike resep
+      tags:
+      - Interaksi
+  /menus/{id}/interaction-status:
+    get:
+      description: Cek status like/dislike/bookmark user terhadap resep
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Status interaksi
+      tags:
+      - Interaksi
+  /menus/{id}/like:
+    post:
+      description: Like/unlike resep (toggle)
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Like resep
+      tags:
+      - Interaksi
+  /menus/{id}/recommendations:
+    get:
+      description: Mendapatkan rekomendasi resep serupa berdasarkan ID resep
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Rekomendasi resep serupa
+      tags:
+      - Rekomendasi
+  /menus/{id}/tags:
+    post:
+      consumes:
+      - application/json
+      description: Menambahkan tag ke sebuah resep
+      parameters:
+      - description: ID resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Tag ID
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.AddTagInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Tambahkan tag ke resep
+      tags:
+      - Interaksi
+  /menus/popular:
+    get:
+      description: Mengambil daftar resep terpopuler berdasarkan vote score
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 12
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Resep terpopuler
+      tags:
+      - Menu
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Mendaftarkan pengguna baru ke sistem
+      parameters:
+      - description: Data registrasi
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Registrasi user baru
+      tags:
+      - Auth
+  /tags:
+    get:
+      description: Mengambil semua tag beserta kategorinya
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Ambil semua tag
+      tags:
+      - Tag
+securityDefinitions:
+  BearerAuth:
+    description: 'Masukkan token dengan format: Bearer {access_token}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

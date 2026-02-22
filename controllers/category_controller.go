@@ -10,7 +10,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CreateCategory membuat kategori tag baru (hanya admin/editor).
+// CreateCategory godoc
+// @Summary Buat kategori baru
+// @Description Membuat kategori tag baru (admin/editor only)
+// @Tags Kategori
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body models.CreateCategoryInput true "Data kategori"
+// @Success 201 {object} map[string]interface{}
+// @Router /editor/categories [post]
 func CreateCategory(c *gin.Context) {
 	var input models.CreateCategoryInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -30,7 +39,13 @@ func CreateCategory(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"data": category})
 }
 
-// GetAllCategories menampilkan semua kategori tag.
+// GetAllCategories godoc
+// @Summary Ambil semua kategori
+// @Description Mengambil semua kategori tag
+// @Tags Kategori
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /categories [get]
 func GetAllCategories(c *gin.Context) {
 	var categories []models.Category
 	if err := config.DB.Find(&categories).Error; err != nil {
@@ -40,7 +55,17 @@ func GetAllCategories(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": categories})
 }
 
-// UpdateCategory mengubah kategori yang ada (hanya admin/editor).
+// UpdateCategory godoc
+// @Summary Update kategori
+// @Description Mengubah kategori yang ada (admin/editor only)
+// @Tags Kategori
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID kategori"
+// @Param body body models.UpdateCategoryInput true "Data kategori"
+// @Success 200 {object} map[string]interface{}
+// @Router /editor/categories/{id} [put]
 func UpdateCategory(c *gin.Context) {
 	var category models.Category
 	if err := config.DB.First(&category, c.Param("id")).Error; err != nil {
@@ -65,7 +90,15 @@ func UpdateCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": category})
 }
 
-// DeleteCategory menghapus kategori (hanya admin/editor).
+// DeleteCategory godoc
+// @Summary Hapus kategori
+// @Description Menghapus kategori (admin/editor only)
+// @Tags Kategori
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID kategori"
+// @Success 200 {object} map[string]string
+// @Router /editor/categories/{id} [delete]
 func DeleteCategory(c *gin.Context) {
 	var category models.Category
 	if err := config.DB.First(&category, c.Param("id")).Error; err != nil {

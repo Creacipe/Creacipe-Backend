@@ -34,6 +34,14 @@ func parseDateRange(c *gin.Context) (time.Time, time.Time) {
 
 
 
+// GetRecipeStats godoc
+// @Summary Statistik resep
+// @Description Statistik jumlah resep (pending/approved/rejected)
+// @Tags Reporting
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/reporting/recipe-stats [get]
 func GetRecipeStats(c *gin.Context) {
 	var pendingCount, approvedCount, rejectedCount int64
 
@@ -51,6 +59,16 @@ func GetRecipeStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": stats})
 }
 
+// GetGrowthStats godoc
+// @Summary Statistik pertumbuhan
+// @Description Statistik pertumbuhan user dan resep harian
+// @Tags Reporting
+// @Produce json
+// @Security BearerAuth
+// @Param startDate query string false "Tanggal mulai (YYYY-MM-DD)"
+// @Param endDate query string false "Tanggal akhir (YYYY-MM-DD)"
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/reporting/growth-stats [get]
 func GetGrowthStats(c *gin.Context) {
 	startDate, endDate := parseDateRange(c)
 
@@ -114,6 +132,14 @@ func GetGrowthStats(c *gin.Context) {
 
 
 
+// GetTopTags godoc
+// @Summary Top tags
+// @Description Top 10 tag yang paling banyak digunakan
+// @Tags Reporting
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/reporting/top-tags [get]
 func GetTopTags(c *gin.Context) {
 	type TagStat struct {
 		TagName string `json:"tag_name"`
@@ -139,6 +165,16 @@ func GetTopTags(c *gin.Context) {
 }
 
 
+// GetActivityLogStats godoc
+// @Summary Statistik aktivitas harian
+// @Description Statistik aktivitas harian berdasarkan log
+// @Tags Reporting
+// @Produce json
+// @Security BearerAuth
+// @Param startDate query string false "Tanggal mulai (YYYY-MM-DD)"
+// @Param endDate query string false "Tanggal akhir (YYYY-MM-DD)"
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/reporting/activity-log-stats [get]
 func GetActivityLogStats(c *gin.Context) {
 	startDate, endDate := parseDateRange(c)
 
@@ -190,6 +226,14 @@ func GetActivityLogStats(c *gin.Context) {
 
 
 
+// GetTopLikedRecipes godoc
+// @Summary Top resep disukai
+// @Description Top 5 resep dengan like terbanyak
+// @Tags Reporting
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/reporting/top-liked-recipes [get]
 func GetTopLikedRecipes(c *gin.Context) {
 	type RecipeStat struct {
 		Title      string `json:"title"`
@@ -215,6 +259,14 @@ func GetTopLikedRecipes(c *gin.Context) {
 }
 
 
+// GetTopBookmarkedRecipes godoc
+// @Summary Top resep di-bookmark
+// @Description Top 5 resep dengan bookmark terbanyak
+// @Tags Reporting
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/reporting/top-bookmarked-recipes [get]
 func GetTopBookmarkedRecipes(c *gin.Context) {
 	type RecipeStat struct {
 		Title          string `json:"title"`

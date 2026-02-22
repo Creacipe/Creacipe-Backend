@@ -16,8 +16,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-
-// AdminCreateUser membuat user baru dengan peran spesifik.
+// AdminCreateUser godoc
+// @Summary Admin buat user baru
+// @Description Membuat user baru dengan role spesifik (admin only)
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body object{name=string,email=string,password=string,role_id=int} true "Data user baru"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Router /admin/users [post]
 func AdminCreateUser(c *gin.Context) {
 	var input struct {
 		Name     string `json:"name" binding:"required"`
@@ -70,7 +79,17 @@ func AdminCreateUser(c *gin.Context) {
 
 
 
-// UpdateUser menangani perubahan data pengguna (nama/email) oleh admin.
+// UpdateUser godoc
+// @Summary Update data user
+// @Description Mengubah data user (admin only)
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID user"
+// @Param body body object{name=string,email=string} true "Data update"
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/users/{id} [put]
 func UpdateUser(c *gin.Context) {
 	var user models.User
 	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
@@ -118,7 +137,14 @@ func UpdateUser(c *gin.Context) {
 
 
 
-// GetMyProfile menampilkan data lengkap dari pengguna yang sedang login.
+// GetMyProfile godoc
+// @Summary Profil saya
+// @Description Mengambil data lengkap profil user yang login
+// @Tags Profil
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /me [get]
 func GetMyProfile(c *gin.Context) {
 	userCtx, _ := c.Get("user")
 	user := userCtx.(models.User)
@@ -131,7 +157,18 @@ func GetMyProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": userDetails})
 }
 
-// UpdateMyProfile memperbarui data profil pengguna yang sedang login.
+// UpdateMyProfile godoc
+// @Summary Update profil saya
+// @Description Mengupdate profil user yang login (multipart/form-data)
+// @Tags Profil
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param name formData string false "Nama"
+// @Param bio formData string false "Bio"
+// @Param image_file formData file false "Foto profil"
+// @Success 200 {object} map[string]string
+// @Router /me [put]
 func UpdateMyProfile(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	
@@ -193,7 +230,15 @@ func UpdateMyProfile(c *gin.Context) {
 
 
 
-// DeactivateUser mengubah status user menjadi 'inactive'.
+// DeactivateUser godoc
+// @Summary Nonaktifkan user
+// @Description Mengubah status user menjadi inactive (admin only)
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID user"
+// @Success 200 {object} map[string]string
+// @Router /admin/users/{id}/deactivate [patch]
 func DeactivateUser(c *gin.Context) {
 	var user models.User
 	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
@@ -207,7 +252,15 @@ func DeactivateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil dinonaktifkan"})
 }
 
-// ActivateUser mengubah status user menjadi 'active'.
+// ActivateUser godoc
+// @Summary Aktifkan user
+// @Description Mengubah status user menjadi active (admin only)
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID user"
+// @Success 200 {object} map[string]string
+// @Router /admin/users/{id}/activate [patch]
 func ActivateUser(c *gin.Context) {
     var user models.User
 
@@ -225,7 +278,14 @@ func ActivateUser(c *gin.Context) {
 }
 
 
-// GetAllUsers mengambil semua pengguna dengan informasi lengkap
+// GetAllUsers godoc
+// @Summary Ambil semua user
+// @Description Mengambil semua user dengan informasi lengkap (admin only)
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/users [get]
 func GetAllUsers(c *gin.Context) {
 	var users []models.User
 	
@@ -237,7 +297,15 @@ func GetAllUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": users})
 }
 
-// GetUserByID mengambil detail satu pengguna
+// GetUserByID godoc
+// @Summary Detail user
+// @Description Mengambil detail satu user (admin only)
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID user"
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/users/{id} [get]
 func GetUserByID(c *gin.Context) {
 	var user models.User
 	
@@ -249,7 +317,17 @@ func GetUserByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": user})
 }
 
-// UpdateUserRole mengubah role user (Admin only)
+// UpdateUserRole godoc
+// @Summary Ubah role user
+// @Description Mengubah role user (admin only)
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID user"
+// @Param body body object{role_id=int} true "Role ID baru"
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/users/{id}/role [patch]
 func UpdateUserRole(c *gin.Context) {
 	var user models.User
 	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
@@ -290,7 +368,15 @@ func UpdateUserRole(c *gin.Context) {
 	})
 }
 
-// GetUserRelatedData mengambil jumlah data terkait user sebelum delete (untuk peringatan)
+// GetUserRelatedData godoc
+// @Summary Data terkait user
+// @Description Mengambil jumlah data terkait user sebelum delete (admin only)
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID user"
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/users/{id}/related-data [get]
 func GetUserRelatedData(c *gin.Context) {
 	userID := c.Param("id")
 
@@ -323,7 +409,15 @@ func GetUserRelatedData(c *gin.Context) {
 	})
 }
 
-// DeleteUser menghapus user beserta semua data terkaitnya 
+// DeleteUser godoc
+// @Summary Hapus user
+// @Description Menghapus user beserta semua data terkaitnya (admin only)
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID user"
+// @Success 200 {object} map[string]string
+// @Router /admin/users/{id} [delete]
 func DeleteUser(c *gin.Context) {
 	var user models.User
 	if err := config.DB.First(&user, c.Param("id")).Error; err != nil {
@@ -430,7 +524,14 @@ func DeleteUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Pengguna dan semua data terkait berhasil dihapus"})
 }
 
-// GetAllRoles mengambil semua role yang tersedia
+// GetAllRoles godoc
+// @Summary Ambil semua role
+// @Description Mengambil semua role yang tersedia (admin only)
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/roles [get]
 func GetAllRoles(c *gin.Context) {
 	var roles []models.Role
 	
@@ -442,7 +543,16 @@ func GetAllRoles(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": roles})
 }
 
-// GetActivityLogs mengambil log aktivitas sistem dengan pagination (Admin only)
+// GetActivityLogs godoc
+// @Summary Log aktivitas
+// @Description Mengambil log aktivitas sistem dengan pagination (admin only)
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Halaman" default(1)
+// @Param limit query int false "Jumlah per halaman" default(20)
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/logs [get]
 func GetActivityLogs(c *gin.Context) {
 	
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))

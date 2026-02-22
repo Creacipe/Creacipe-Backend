@@ -3,12 +3,12 @@ package controllers
 
 import (
 	"creacipe-backend/config"
+	"creacipe-backend/helpers"
 	"creacipe-backend/models"
-	"creacipe-backend/helpers" 
+	"fmt"
 	"net/http"
 	"os"
 	"time"
-	"fmt"
 
 	// "crypto/rand"
 	// "encoding/hex"
@@ -19,7 +19,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Fungsi Register menangani logika pendaftaran pengguna baru.
+// Register godoc
+// @Summary Registrasi user baru
+// @Description Mendaftarkan pengguna baru ke sistem
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body models.RegisterInput true "Data registrasi"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Router /register [post]
 func Register(c *gin.Context) {
 	var input models.RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -64,6 +73,16 @@ func Register(c *gin.Context) {
 
 
 
+// Login godoc
+// @Summary Login user
+// @Description Login dengan email dan password
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body models.LoginInput true "Data login"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Router /login [post]
 func Login(c *gin.Context) {
 	var input models.LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -116,6 +135,16 @@ func Login(c *gin.Context) {
 	})
 }
 
+// RefreshToken godoc
+// @Summary Refresh access token
+// @Description Mendapatkan access token baru menggunakan refresh token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body object{refresh_token=string} true "Refresh token"
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Router /auth/refresh [post]
 func RefreshToken(c *gin.Context) {
 	var body struct {
 		RefreshToken string `json:"refresh_token"`
@@ -169,6 +198,17 @@ func RefreshToken(c *gin.Context) {
 }
 
 
+// RequestPasswordReset godoc
+// @Summary Request reset password (authenticated)
+// @Description Kirim kode verifikasi ke email untuk reset password
+// @Tags Password & Email
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body object{current_password=string} true "Password saat ini"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Router /me/request-password-reset [post]
 func RequestPasswordReset(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
@@ -219,7 +259,17 @@ func RequestPasswordReset(c *gin.Context) {
 	})
 }
 
-// VerifyAndResetPassword memverifikasi kode dan reset password
+// VerifyAndResetPassword godoc
+// @Summary Verifikasi dan reset password
+// @Description Memverifikasi kode OTP dan mengubah password
+// @Tags Password & Email
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body object{verification_code=string,new_password=string} true "Kode verifikasi dan password baru"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Router /me/verify-reset-password [post]
 func VerifyAndResetPassword(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
@@ -269,7 +319,17 @@ func VerifyAndResetPassword(c *gin.Context) {
 }
 
 
-// RequestEmailChange mengirim kode verifikasi untuk ubah email
+// RequestEmailChange godoc
+// @Summary Request ubah email
+// @Description Kirim kode verifikasi ke email baru
+// @Tags Password & Email
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body object{new_email=string} true "Email baru"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Router /me/request-email-change [post]
 func RequestEmailChange(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
@@ -325,7 +385,17 @@ func RequestEmailChange(c *gin.Context) {
 	})
 }
 
-// VerifyAndChangeEmail memverifikasi kode dan ubah email
+// VerifyAndChangeEmail godoc
+// @Summary Verifikasi dan ubah email
+// @Description Memverifikasi kode OTP dan mengubah email
+// @Tags Password & Email
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body object{verification_code=string} true "Kode verifikasi"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Router /me/verify-email-change [post]
 func VerifyAndChangeEmail(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
@@ -376,7 +446,16 @@ func VerifyAndChangeEmail(c *gin.Context) {
 	})
 }
 
-// ForgotPasswordRequest mengirim kode OTP ke email user (tanpa perlu login)
+// ForgotPasswordRequest godoc
+// @Summary Forgot password (tanpa login)
+// @Description Kirim kode OTP ke email untuk reset password tanpa perlu login
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body object{email=string} true "Email terdaftar"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Router /forgot-password [post]
 func ForgotPasswordRequest(c *gin.Context) {
 	var input struct {
 		Email string `json:"email" binding:"required,email"`
@@ -436,7 +515,16 @@ func ForgotPasswordRequest(c *gin.Context) {
 	})
 }
 
-// ForgotPasswordVerify memverifikasi kode OTP dan reset password (tanpa perlu login)
+// ForgotPasswordVerify godoc
+// @Summary Verifikasi forgot password (tanpa login)
+// @Description Verifikasi kode OTP dan reset password tanpa perlu login
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body object{email=string,verification_code=string,new_password=string} true "Data reset"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Router /forgot-password/verify [post]
 func ForgotPasswordVerify(c *gin.Context) {
 	var input struct {
 		Email            string `json:"email" binding:"required,email"`

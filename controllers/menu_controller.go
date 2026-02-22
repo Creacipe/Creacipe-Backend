@@ -13,8 +13,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
-// CreateMenu menangani pembuatan resep baru 
+// CreateMenu godoc
+// @Summary Buat resep baru
+// @Description Membuat resep baru dengan upload gambar (multipart/form-data)
+// @Tags Menu
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param title formData string true "Judul resep"
+// @Param description formData string true "Deskripsi resep"
+// @Param ingredients formData string true "Bahan-bahan (JSON)"
+// @Param instructions formData string true "Langkah-langkah (JSON)"
+// @Param image_file formData file true "Gambar resep"
+// @Param tag_ids formData string false "Tag IDs (comma separated, misal: 1,2,3)"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Router /menus [post]
 func CreateMenu(c *gin.Context) {
 	// 2. Baca form-data
 	title := c.PostForm("title")
@@ -92,7 +106,16 @@ func CreateMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": menu})
 }
 
-// GetAllMenus mengambil daftar semua resep yang sudah disetujui dengan pagination dan search.
+// GetAllMenus godoc
+// @Summary Ambil semua resep
+// @Description Mengambil daftar resep yang sudah disetujui dengan pagination dan search
+// @Tags Menu
+// @Produce json
+// @Param page query int false "Halaman" default(1)
+// @Param limit query int false "Jumlah per halaman" default(12)
+// @Param search query string false "Cari berdasarkan judul"
+// @Success 200 {object} map[string]interface{}
+// @Router /menus [get]
 func GetAllMenus(c *gin.Context) {
 	// Get pagination parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -224,7 +247,15 @@ func GetAllMenus(c *gin.Context) {
 	})
 }
 
-// GetMenuByID mengambil detail satu resep berdasarkan ID (jika sudah disetujui).
+// GetMenuByID godoc
+// @Summary Detail resep
+// @Description Mengambil detail satu resep berdasarkan ID
+// @Tags Menu
+// @Produce json
+// @Param id path int true "ID resep"
+// @Success 200 {object} map[string]interface{}
+// @Failure 404 {object} map[string]string
+// @Router /menus/{id} [get]
 func GetMenuByID(c *gin.Context) {
 	var menu models.Menu
 	
@@ -261,7 +292,22 @@ func GetMenuByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
-// UpdateMenu menangani pembaruan data resep oleh pemiliknya atau moderator.
+// UpdateMenu godoc
+// @Summary Update resep
+// @Description Mengupdate data resep (hanya pemilik atau moderator)
+// @Tags Menu
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID resep"
+// @Param title formData string false "Judul resep"
+// @Param description formData string false "Deskripsi"
+// @Param ingredients formData string false "Bahan-bahan"
+// @Param instructions formData string false "Langkah-langkah"
+// @Param image_file formData file false "Gambar baru"
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]string
+// @Router /menus/{id} [put]
 func UpdateMenu(c *gin.Context) {
 	var menu models.Menu
 	if err := config.DB.Preload("Tags").First(&menu, c.Param("id")).Error; err != nil {
@@ -350,7 +396,16 @@ func UpdateMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": menu})
 }
 
-// DeleteMenu menangani penghapusan resep oleh pemiliknya atau moderator.
+// DeleteMenu godoc
+// @Summary Hapus resep
+// @Description Menghapus resep (hanya pemilik atau moderator)
+// @Tags Menu
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID resep"
+// @Success 200 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Router /menus/{id} [delete]
 func DeleteMenu(c *gin.Context) {
 	var menu models.Menu
 	if err := config.DB.First(&menu, c.Param("id")).Error; err != nil {
@@ -378,7 +433,15 @@ func DeleteMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Resep berhasil dihapus"})
 }
 
-// GetPopularMenus mengambil daftar resep terpopuler dengan pagination.
+// GetPopularMenus godoc
+// @Summary Resep terpopuler
+// @Description Mengambil daftar resep terpopuler berdasarkan vote score
+// @Tags Menu
+// @Produce json
+// @Param page query int false "Halaman" default(1)
+// @Param limit query int false "Jumlah per halaman" default(12)
+// @Success 200 {object} map[string]interface{}
+// @Router /menus/popular [get]
 func GetPopularMenus(c *gin.Context) {
 	// Get pagination parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -490,7 +553,17 @@ func GetPopularMenus(c *gin.Context) {
 	})
 }
 
-// GetMyMenus mendapatkan semua resep yang dibuat oleh user yang sedang login dengan pagination
+// GetMyMenus godoc
+// @Summary Resep saya
+// @Description Mengambil semua resep yang dibuat oleh user yang login
+// @Tags Menu
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Halaman" default(1)
+// @Param limit query int false "Jumlah per halaman" default(12)
+// @Param search query string false "Cari berdasarkan judul"
+// @Success 200 {object} map[string]interface{}
+// @Router /me/menus [get]
 func GetMyMenus(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
@@ -613,7 +686,17 @@ func GetMyMenus(c *gin.Context) {
 	})
 }
 
-// GetMyBookmarks mendapatkan semua resep yang di-bookmark oleh user dengan pagination
+// GetMyBookmarks godoc
+// @Summary Bookmark saya
+// @Description Mengambil semua resep yang di-bookmark oleh user yang login
+// @Tags Menu
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Halaman" default(1)
+// @Param limit query int false "Jumlah per halaman" default(12)
+// @Param search query string false "Cari berdasarkan judul"
+// @Success 200 {object} map[string]interface{}
+// @Router /me/bookmarks [get]
 func GetMyBookmarks(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
@@ -748,7 +831,17 @@ func GetMyBookmarks(c *gin.Context) {
 	})
 }
 
-// GetMyCollection mendapatkan gabungan resep yang dibuat user + bookmark dengan pagination
+// GetMyCollection godoc
+// @Summary Koleksi saya
+// @Description Gabungan resep yang dibuat + bookmark user dengan pagination
+// @Tags Menu
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Halaman" default(1)
+// @Param limit query int false "Jumlah per halaman" default(12)
+// @Param search query string false "Cari berdasarkan judul"
+// @Success 200 {object} map[string]interface{}
+// @Router /me/collection [get]
 func GetMyCollection(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	

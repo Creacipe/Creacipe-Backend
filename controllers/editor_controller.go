@@ -3,14 +3,21 @@ package controllers
 
 import (
 	"creacipe-backend/config"
-	"creacipe-backend/helpers" 
+	"creacipe-backend/helpers"
 	"creacipe-backend/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-// GetDashboardStats mengambil statistik untuk dashboard editor/admin
+// GetDashboardStats godoc
+// @Summary Statistik dashboard
+// @Description Mengambil statistik untuk dashboard editor/admin
+// @Tags Editor
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /editor/dashboard/stats [get]
 func GetDashboardStats(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
@@ -56,7 +63,15 @@ func GetDashboardStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": stats})
 }
 
-// GetAllMenusForModeration menampilkan semua resep (semua status) untuk editor/admin.
+// GetAllMenusForModeration godoc
+// @Summary Semua resep (moderasi)
+// @Description Menampilkan semua resep untuk moderasi (semua status)
+// @Tags Editor
+// @Produce json
+// @Security BearerAuth
+// @Param status query string false "Filter: pending, approved, rejected"
+// @Success 200 {object} map[string]interface{}
+// @Router /editor/menus [get]
 func GetAllMenusForModeration(c *gin.Context) {
 	var menus []models.Menu
 	
@@ -77,7 +92,14 @@ func GetAllMenusForModeration(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": menus})
 }
 
-// GetPendingMenus menampilkan resep yang menunggu persetujuan ('pending').
+// GetPendingMenus godoc
+// @Summary Resep pending
+// @Description Menampilkan resep yang menunggu persetujuan
+// @Tags Editor
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /editor/menus/pending [get]
 func GetPendingMenus(c *gin.Context) {
 	var menus []models.Menu
 	if err := config.DB.Preload("User").Preload("User.Role").Where("status = ?", "pending").Order("created_at asc").Find(&menus).Error; err != nil {
@@ -87,7 +109,17 @@ func GetPendingMenus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": menus})
 }
 
-// UpdateMenuStatus menangani logika approve/reject resep oleh editor/admin.
+// UpdateMenuStatus godoc
+// @Summary Approve/reject resep
+// @Description Mengubah status resep (approve/reject) oleh editor/admin
+// @Tags Editor
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID resep"
+// @Param body body models.UpdateMenuStatusInput true "Status baru"
+// @Success 200 {object} map[string]interface{}
+// @Router /editor/menus/{id}/status [patch]
 func UpdateMenuStatus(c *gin.Context) {
 	var menu models.Menu
 	if err := config.DB.First(&menu, c.Param("id")).Error; err != nil {

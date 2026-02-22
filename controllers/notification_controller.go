@@ -9,7 +9,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetMyNotifications mengambil semua notifikasi user yang login
+// GetMyNotifications godoc
+// @Summary Ambil notifikasi
+// @Description Mengambil notifikasi user yang login dengan pagination
+// @Tags Notifikasi
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Halaman" default(1)
+// @Param limit query int false "Jumlah per halaman" default(20)
+// @Param is_read query string false "Filter: true/false"
+// @Success 200 {object} map[string]interface{}
+// @Router /me/notifications [get]
 func GetMyNotifications(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
@@ -45,7 +55,14 @@ func GetMyNotifications(c *gin.Context) {
 	})
 }
 
-// GetUnreadNotificationCount mengambil jumlah notifikasi yang belum dibaca
+// GetUnreadNotificationCount godoc
+// @Summary Hitung notifikasi belum dibaca
+// @Description Mengambil jumlah notifikasi yang belum dibaca
+// @Tags Notifikasi
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]int
+// @Router /me/notifications/unread-count [get]
 func GetUnreadNotificationCount(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
@@ -60,7 +77,15 @@ func GetUnreadNotificationCount(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"unread_count": count})
 }
 
-// MarkNotificationAsRead menandai satu notifikasi sebagai sudah dibaca
+// MarkNotificationAsRead godoc
+// @Summary Tandai notifikasi dibaca
+// @Description Menandai satu notifikasi sebagai sudah dibaca
+// @Tags Notifikasi
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID notifikasi"
+// @Success 200 {object} map[string]string
+// @Router /me/notifications/{id}/read [patch]
 func MarkNotificationAsRead(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	notifID := c.Param("id")
@@ -80,7 +105,14 @@ func MarkNotificationAsRead(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Notifikasi ditandai sudah dibaca"})
 }
 
-// MarkAllNotificationsAsRead menandai semua notifikasi user sebagai sudah dibaca
+// MarkAllNotificationsAsRead godoc
+// @Summary Tandai semua notifikasi dibaca
+// @Description Menandai semua notifikasi user sebagai sudah dibaca
+// @Tags Notifikasi
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]string
+// @Router /me/notifications/mark-all-read [patch]
 func MarkAllNotificationsAsRead(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 

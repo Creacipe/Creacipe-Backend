@@ -4,12 +4,15 @@ package main
 import (
 	"creacipe-backend/config"
 	"creacipe-backend/controllers"
+	_ "creacipe-backend/docs"
 	"creacipe-backend/middlewares"
 	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func init() {
@@ -20,6 +23,15 @@ func init() {
 	config.ConnectDatabase()
 }
 
+// @title Creacipe API
+// @version 1.0
+// @description API Backend untuk aplikasi Creacipe - Platform berbagi resep masakan.
+// @host localhost:8080
+// @BasePath /api
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Masukkan token dengan format: Bearer {access_token}
 func main() {
 	r := gin.Default()
 	
@@ -29,6 +41,9 @@ func main() {
 	
 
 	r.Use(config.CORSMiddleware())
+
+	// Swagger UI route
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	api := r.Group("/api")
 	{

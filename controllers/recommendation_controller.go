@@ -24,7 +24,14 @@ func getMLServiceURL() string {
 	return mlURL
 }
 
-// GetRecommendations  - Mendapatkan resep serupa.
+// GetRecommendations godoc
+// @Summary Rekomendasi resep serupa
+// @Description Mendapatkan rekomendasi resep serupa berdasarkan ID resep
+// @Tags Rekomendasi
+// @Produce json
+// @Param id path int true "ID resep"
+// @Success 200 {object} map[string]interface{}
+// @Router /menus/{id}/recommendations [get]
 func GetRecommendations(c *gin.Context) {
 	// 1. Ambil menu_id dari URL.
 	menuID := c.Param("id")
@@ -181,7 +188,14 @@ func GetRecommendations(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": recommendedMenus})
 }
 
-// GetPersonalRecommendations (by Titles) - Mendapatkan rekomendasi personal.
+// GetPersonalRecommendations godoc
+// @Summary Rekomendasi personal
+// @Description Mendapatkan rekomendasi resep personal berdasarkan riwayat like & bookmark
+// @Tags Rekomendasi
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /me/recommendations [get]
 func GetPersonalRecommendations(c *gin.Context) {
 	// 1. Ambil user yang sedang login.
 	user := c.MustGet("user").(models.User)
@@ -327,7 +341,14 @@ func GetPersonalRecommendations(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": recommendedMenus})
 }
 
-// GetEvaluationLogs - Endpoint untuk mengambil log evaluasi real-time.
+// GetEvaluationLogs godoc
+// @Summary Log evaluasi ML
+// @Description Mengambil log evaluasi ML service real-time (admin only)
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/evaluation/logs [get]
 func GetEvaluationLogs(c *gin.Context) {
 	// 1. Ambil parameter limit dari query string (opsional)
 	limit := c.DefaultQuery("limit", "50")

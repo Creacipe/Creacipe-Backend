@@ -10,7 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetAllTags menampilkan semua tag beserta kategorinya.
+// GetAllTags godoc
+// @Summary Ambil semua tag
+// @Description Mengambil semua tag beserta kategorinya
+// @Tags Tag
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /tags [get]
 func GetAllTags(c *gin.Context) {
 	var tags []models.Tag
 	
@@ -21,7 +27,16 @@ func GetAllTags(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": tags})
 }
 
-// CreateTag membuat tag baru (hanya untuk admin/editor).
+// CreateTag godoc
+// @Summary Buat tag baru
+// @Description Membuat tag baru (admin/editor only)
+// @Tags Tag
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body models.CreateTagInput true "Data tag"
+// @Success 201 {object} map[string]interface{}
+// @Router /editor/tags [post]
 func CreateTag(c *gin.Context) {
 	var input models.CreateTagInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -46,7 +61,17 @@ func CreateTag(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"data": tag})
 }
 
-// UpdateTag mengubah tag yang ada (hanya untuk admin/editor).
+// UpdateTag godoc
+// @Summary Update tag
+// @Description Mengubah tag yang ada (admin/editor only)
+// @Tags Tag
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID tag"
+// @Param body body models.UpdateTagInput true "Data tag"
+// @Success 200 {object} map[string]interface{}
+// @Router /editor/tags/{id} [put]
 func UpdateTag(c *gin.Context) {
 	var tag models.Tag
 	if err := config.DB.First(&tag, c.Param("id")).Error; err != nil {
@@ -72,7 +97,15 @@ func UpdateTag(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": tag})
 }
 
-// DeleteTag menghapus tag (hanya untuk admin/editor).
+// DeleteTag godoc
+// @Summary Hapus tag
+// @Description Menghapus tag (admin/editor only)
+// @Tags Tag
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID tag"
+// @Success 200 {object} map[string]string
+// @Router /editor/tags/{id} [delete]
 func DeleteTag(c *gin.Context) {
 	var tag models.Tag
 	if err := config.DB.First(&tag, c.Param("id")).Error; err != nil {
