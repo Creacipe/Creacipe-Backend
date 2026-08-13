@@ -3,8 +3,8 @@ services:
     name: creacipe-backend
     runtime: go
     plan: free
-    buildCommand: go build -o server .
-    startCommand: ./server
+    buildCommand: go build -o app .
+    startCommand: ./app
     envVars:
       - key: GIN_MODE
         value: release
