@@ -16,6 +16,11 @@ import (
 )
 
 func init() {
+	// Set Gin ke release mode untuk menghilangkan semua [GIN-debug] log
+	gin.SetMode(gin.ReleaseMode)
+}
+
+func initApp() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Info: .env file tidak ditemukan, menggunakan environment variables dari sistem")
@@ -33,7 +38,12 @@ func init() {
 // @name Authorization
 // @description Masukkan token dengan format: Bearer {access_token}
 func main() {
+	initApp()
+
 	r := gin.Default()
+
+	// Set trusted proxies (diperlukan untuk Render / reverse proxy)
+	r.SetTrustedProxies([]string{"0.0.0.0/0"})
 	
 	os.MkdirAll("./assets", os.ModePerm)
 	
@@ -159,6 +169,12 @@ func main() {
 		}
 	}
 
-	log.Println("Server dimulai di http://localhost:8080")
-	r.Run()
+	// Baca PORT dari environment variable (untuk Render) atau default ke 8080
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("Server dimulai di http://localhost:%s\n", port)
+	r.Run(":" + port)
 }

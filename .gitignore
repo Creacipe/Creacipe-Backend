@@ -1,2 +1,15 @@
 # File Environment Variables
 .env
+
+# Compiled binary
+server
+*.exe
+
+# Uploaded assets (gambar, dll)
+assets/
+
+# Database dump (terlalu besar untuk GitHub)
+*.sql
+
+# Test cache
+tests/testdata/
